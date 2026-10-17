@@ -1,0 +1,129 @@
+{
+  "teachers": [
+    {
+      "id": "teacher_1791304065163",
+      "namaGuru": "Muhammad Saiidil Hudri, S.Pd",
+      "email": "saiidilh52@gmail.com",
+      "passwordHash": "U2FpaWRpbDE1",
+      "createdAt": "2026-10-06T16:27:45.163Z"
+    }
+  ],
+  "reflections": [],
+  "materials": [
+    {
+      "id": "mat-ppkn-x-1",
+      "teacherId": "guru-demo-1",
+      "mataPelajaran": "Pendidikan Pancasila & Kewarganegaraan (PPKn)",
+      "kelas": "X (Fase E)",
+      "topik": "Norma dan Konstitusi UUD NRI Tahun 1945",
+      "tujuanPembelajaran": "Peserta didik mampu menganalisis norma dan hierarki peraturan perundang-undangan serta menerapkannya dalam kehidupan sehari-hari.",
+      "capaianPembelajaran": "Peserta didik menganalisis norma dan perundang-undangan, mengidentifikasi pelanggaran norma, serta memprakarsai aksi ketaatan hukum.",
+      "materi": "Hierarki perundang-undangan menurut UU No. 12 Tahun 2011, norma kesusilaan, kesopanan, agama, dan hukum.",
+      "durasi": "2 x 45 Menit (90 Menit)",
+      "karakteristikPesertaDidik": "Aktif, visual dan kinestetik, senang berkolaborasi namun sebagian mudah jenuh jika hanya ceramah teks panjang.",
+      "catatanGuru": "Pertemuan sebelumnya siswa masih bingung membedakan tingkatan TAP MPR dan Perpu.",
+      "createdAt": "2026-10-06T16:19:13.615Z"
+    }
+  ],
+  "games": [
+    {
+      "id": "game_1791304417329",
+      "createdAt": "2026-10-06T16:33:37.329Z",
+      "namaGame": "Balapan Mobil: Juara Norma dan Konstitusi UUD NRI Tahun 1945",
+      "kategori": "Balapan Mobil",
+      "mataPelajaran": "Pendidikan Pancasila & Kewarganegaraan (PPKn)",
+      "kelas": "X (Fase E)",
+      "materi": "Norma dan Konstitusi UUD NRI Tahun 1945",
+      "jumlahPemain": "32 Siswa (4 Tim: Merah, Biru, Hijau, Kuning)",
+      "durasi": "20 Menit",
+      "tujuan": "Menguji dan memantapkan pemahaman siswa tentang Norma dan Konstitusi UUD NRI Tahun 1945 secara aktif, kolaboratif, dan menyenangkan.",
+      "aturan": [
+        "Kelas dibagi menjadi 4 tim atau dimainkan secara individu.",
+        "Setiap ronde memiliki batas waktu menjawab 30 detik.",
+        "Jawaban benar memajukan posisi mobil 1 segmen dan memberikan 100 poin.",
+        "Jawaban salah tidak mengurangi poin tetapi mobil tidak bergerak.",
+        "Mobil pertama yang mencapai garis akhir (atau skor tertinggi) adalah juara."
+      ],
+      "langkah": [
+        "Guru menampilkan game di layar proyektor / siswa bergabung lewat layar masing-masing.",
+        "Jelaskan instruksi singkat dan berikan yel-yel semangat tim.",
+        "Mulai ronde kuis dari soal 1 hingga soal 5.",
+        "Setelah setiap ronde, lakukan mini-review pembahasan soal.",
+        "Umumkan pemenang dan beri tepuk tangan apresiasi untuk seluruh siswa."
+      ],
+      "sistemSkor": "Setiap jawaban benar = 100 poin. Waktu tercepat = +20 poin.",
+      "bonus": "Tiga kali jawaban benar berturut-turut memberikan Nitro Boost (+50 poin).",
+      "caraMenentukanPemenang": "Tim atau pemain dengan akumulasi poin tertinggi di akhir ronde.",
+      "pertanyaan": [
+        {
+          "id": 1,
+          "soal": "Menurut UU No. 12 Tahun 2011, peraturan perundang-undangan yang menempati hierarki tertinggi di Indonesia adalah...",
+          "pilihan": [
+            "A. UUD Negara Republik Indonesia Tahun 1945",
+            "B. Ketetapan MPR",
+            "C. Undang-Undang / Perpu",
+            "D. Peraturan Pemerintah"
+          ],
+          "kunci": "A",
+          "pembahasan": "UUD NRI Tahun 1945 adalah hukum dasar tertulis tertinggi di Indonesia yang menjadi landasan bagi semua peraturan perundang-undangan di bawahnya.",
+          "poin": 100
+        },
+        {
+          "id": 2,
+          "soal": "Norma yang bersumber dari hati nurani manusia dan sanksinya berupa rasa penyesalan batin disebut norma...",
+          "pilihan": [
+            "A. Agama",
+            "B. Kesusilaan",
+            "C. Kesopanan",
+            "D. Hukum"
+          ],
+          "kunci": "B",
+          "pembahasan": "Norma kesusilaan bersumber dari suara hati nurani manusia. Pelanggarannya menimbulkan sanksi internal berupa penyesalan dan rasa bersalah.",
+          "poin": 100
+        },
+        {
+          "id": 3,
+          "soal": "Manakah urutan hierarki yang benar antara Peraturan Pemerintah (PP) dan Peraturan Presiden (Perpres)?",
+          "pilihan": [
+            "A. Perpres lebih tinggi dari PP",
+            "B. PP lebih tinggi dari Perpres",
+            "C. PP dan Perpres setara",
+            "D. Tergantung menteri yang mengesahkan"
+          ],
+          "kunci": "B",
+          "pembahasan": "Berdasarkan Pasal 7 ayat (1) UU 12/2011, urutannya adalah UUD 1945 -> Tap MPR -> UU/Perpu -> PP -> Perpres -> Perda Provinsi -> Perda Kab/Kota.",
+          "poin": 100
+        },
+        {
+          "id": 4,
+          "soal": "Sanksi bagi pelanggar norma hukum bersifat tegas dan nyata, karena ditegakkan oleh...",
+          "pilihan": [
+            "A. Tokoh masyarakat",
+            "B. Perangkat adat setempat",
+            "C. Aparat penegak hukum negara",
+            "D. Teman sebaya"
+          ],
+          "kunci": "C",
+          "pembahasan": "Norma hukum memiliki sifat memaksa dan memiliki sanksi resmi yang ditegakkan oleh lembaga dan aparat berwenang (polisi, jaksa, hakim).",
+          "poin": 100
+        },
+        {
+          "id": 5,
+          "soal": "Jika suatu Undang-Undang diduga bertentangan dengan UUD 1945, lembaga yang berwenang mengujinya adalah...",
+          "pilihan": [
+            "A. Mahkamah Agung (MA)",
+            "B. Komisi Yudisial (KY)",
+            "C. Dewan Perwakilan Rakyat (DPR)",
+            "D. Mahkamah Konstitusi (MK)"
+          ],
+          "kunci": "D",
+          "pembahasan": "Mahkamah Konstitusi berwenang menguji undang-undang terhadap Undang-Undang Dasar Negara Republik Indonesia Tahun 1945 (Judicial Review).",
+          "poin": 100
+        }
+      ],
+      "teacherId": "teacher_1791304065163"
+    }
+  ],
+  "rpms": [],
+  "analysisList": []
+}

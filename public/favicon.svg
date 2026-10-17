@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="favLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#4F46E5" />
+      <stop offset="100%" stopColor="#06B6D4" />
+    </linearGradient>
+    <linearGradient id="favDiag" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#7C3AED" />
+      <stop offset="50%" stopColor="#C026D3" />
+      <stop offset="100%" stopColor="#EC4899" />
+    </linearGradient>
+    <linearGradient id="favRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#F43F5E" />
+      <stop offset="100%" stopColor="#8B5CF6" />
+    </linearGradient>
+    <filter id="favGlow">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background disc for contrast on any tab color -->
+  <rect width="100" height="100" rx="24" fill="#0F172A" />
+
+  <!-- Left pillar -->
+  <path d="M 23,24 C 23,19 27,15 32,15 L 35,15 C 40,15 44,19 44,24 L 44,76 C 44,81 40,85 35,85 L 32,85 C 27,85 23,81 23,76 Z" fill="url(#favLeft)" />
+
+  <!-- Diagonal fold -->
+  <path d="M 26,18 C 29.5,15.5 34.5,16.5 37,20 L 74,78 C 76.5,82 74,86 69.5,86 L 59,86 C 55.5,86 52.5,83.8 50.5,80.5 L 22,27 C 19.8,23.5 22,18.8 26,18 Z" fill="url(#favDiag)" />
+
+  <!-- Right pillar -->
+  <path d="M 56,24 C 56,19 60,15 65,15 L 68,15 C 73,15 77,19 77,24 L 77,76 C 77,81 73,85 68,85 L 65,85 C 60,85 56,81 56,76 Z" fill="url(#favRight)" />
+
+  <!-- Aspirasi spark -->
+  <g transform="translate(73, 16)" filter="url(#favGlow)">
+    <path d="M 0,-7 Q 0,0 7,0 Q 0,0 0,7 Q 0,0 -7,0 Q 0,0 0,-7 Z" fill="#FBBF24" />
+    <circle cx="0" cy="0" r="2.2" fill="#FFFFFF" />
+  </g>
+</svg>

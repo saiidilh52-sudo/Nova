@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 140" width="100%" height="100%">
+  <defs>
+    <linearGradient id="nLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#4F46E5" />
+      <stop offset="60%" stopColor="#6366F1" />
+      <stop offset="100%" stopColor="#06B6D4" />
+    </linearGradient>
+    <linearGradient id="nDiag" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#7C3AED" />
+      <stop offset="50%" stopColor="#C026D3" />
+      <stop offset="100%" stopColor="#EC4899" />
+    </linearGradient>
+    <linearGradient id="nRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#F43F5E" />
+      <stop offset="50%" stopColor="#EC4899" />
+      <stop offset="100%" stopColor="#8B5CF6" />
+    </linearGradient>
+    <linearGradient id="nGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.45" />
+      <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.0" />
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stopColor="#1E1B4B" />
+      <stop offset="50%" stopColor="#581C87" />
+      <stop offset="100%" stopColor="#BE185D" />
+    </linearGradient>
+    <filter id="nShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#1E1B4B" flood-opacity="0.25" />
+    </filter>
+    <filter id="sparkGlow">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- ICON EMBLEM: LETTER 'N' -->
+  <g transform="translate(15, 12)">
+    <!-- Ambient backplate -->
+    <circle cx="58" cy="58" r="54" fill="#EEF2FF" opacity="0.6" />
+
+    <!-- Left Pillar -->
+    <path d="M 28,26 C 28,20 33,16 39,16 L 43,16 C 49,16 54,20 54,26 L 54,90 C 54,96 49,100 43,100 L 39,100 C 33,100 28,96 28,90 Z" fill="url(#nLeft)" filter="url(#nShadow)" />
+    <!-- Gloss -->
+    <path d="M 30,26 C 30,22 33,18 38,18 L 40,18 C 36,22 35,27 35,33 L 35,88 C 35,93 32,97 30,99 Z" fill="url(#nGlass)" />
+
+    <!-- Diagonal Dynamic Ribbon -->
+    <path d="M 32,20 C 36,17 42,18 45,22 L 90,92 C 93,96 90,101 85,101 L 72,101 C 68,101 64.5,98.5 62,94.5 L 27,31 C 24.5,27 27,21 32,20 Z" fill="url(#nDiag)" filter="url(#nShadow)" />
+    <path d="M 40,23 L 78,87 C 75,89 73,89 70,88 L 35,30 C 36.5,26.5 38.5,24 40,23 Z" fill="url(#nGlass)" />
+
+    <!-- Right Pillar -->
+    <path d="M 68,26 C 68,20 73,16 79,16 L 83,16 C 89,16 94,20 94,26 L 94,90 C 94,96 89,100 83,100 L 79,100 C 73,100 68,96 68,90 Z" fill="url(#nRight)" filter="url(#nShadow)" />
+
+    <!-- Apersepsi Star Spark -->
+    <g transform="translate(89, 18)" filter="url(#sparkGlow)">
+      <path d="M 0,-9 Q 0,0 9,0 Q 0,0 0,9 Q 0,0 -9,0 Q 0,0 0,-9 Z" fill="#FBBF24" />
+      <circle cx="0" cy="0" r="2.8" fill="#FFFFFF" />
+    </g>
+  </g>
+
+  <!-- TYPOGRAPHY: NOVA -->
+  <g transform="translate(155, 30)">
+    <!-- Wordmark NOVA -->
+    <text x="0" y="52" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="64" font-weight="900" letter-spacing="-1.5" fill="url(#textGrad)">
+      NOVA
+    </text>
+
+    <!-- AI EDU Badge -->
+    <g transform="translate(205, 14)">
+      <rect width="64" height="26" rx="13" fill="#EEF2FF" stroke="#C7D2FE" stroke-width="1.5" />
+      <text x="32" y="17.5" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#4F46E5" text-anchor="middle">
+        AI EDU
+      </text>
+    </g>
+
+    <!-- Subtitle: Narasi, Observasi, Voice, Apersepsi -->
+    <text x="2" y="82" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="800" letter-spacing="3.2" fill="#BE185D">
+      NARASI • OBSERVASI • VOICE • APERSEPSI
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,133 @@
+{
+  "entities": {
+    "Teacher": {
+      "title": "Teacher",
+      "description": "Profil dan akun guru di NOVA",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "namaGuru": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 120 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "namaGuru", "email", "createdAt"]
+    },
+    "StudentReflection": {
+      "title": "StudentReflection",
+      "description": "Refleksi pembelajaran 5 dimensi yang diisi oleh siswa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "maxLength": 50 },
+        "namaSiswa": { "type": "string", "maxLength": 100 },
+        "kelas": { "type": "string", "maxLength": 50 },
+        "noAbsen": { "type": "string", "maxLength": 20 },
+        "mood": { "type": "string", "maxLength": 50 },
+        "alasanMood": { "type": "string", "maxLength": 500 },
+        "sudahDipahami": { "type": "string", "maxLength": 500 },
+        "belumDipahami": { "type": "string", "maxLength": 500 },
+        "tingkatPemahaman": { "type": "string", "maxLength": 50 },
+        "mediaMenarik": { "type": "string", "maxLength": 100 },
+        "kegiatanMembantu": { "type": "string", "maxLength": 100 },
+        "kegiatanMembosankan": { "type": "string", "maxLength": 200 },
+        "harapan": { "type": "string", "maxLength": 500 },
+        "kesan": { "type": "string", "maxLength": 500 },
+        "materiHariIni": { "type": "string", "maxLength": 200 },
+        "materialId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "timestamp", "namaSiswa", "kelas", "mood", "tingkatPemahaman"]
+    },
+    "Material": {
+      "title": "Material",
+      "description": "Materi pembelajaran yang dikelola oleh guru",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "mataPelajaran": { "type": "string", "maxLength": 100 },
+        "kelas": { "type": "string", "maxLength": 50 },
+        "topik": { "type": "string", "maxLength": 150 },
+        "materi": { "type": "string", "maxLength": 1000 },
+        "tujuanPembelajaran": { "type": "string", "maxLength": 1000 },
+        "capaianPembelajaran": { "type": "string", "maxLength": 1000 },
+        "durasi": { "type": "string", "maxLength": 50 },
+        "karakteristikPesertaDidik": { "type": "string", "maxLength": 500 },
+        "catatanGuru": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "mataPelajaran", "kelas", "topik", "createdAt"]
+    },
+    "EducationalGame": {
+      "title": "EducationalGame",
+      "description": "Game edukasi interaktif yang dapat dimainkan dan dibagikan ke siswa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "judulGame": { "type": "string", "maxLength": 150 },
+        "jenisGame": { "type": "string", "maxLength": 50 },
+        "mataPelajaran": { "type": "string", "maxLength": 100 },
+        "materi": { "type": "string", "maxLength": 150 },
+        "deskripsi": { "type": "string", "maxLength": 500 },
+        "rules": { "type": "string", "maxLength": 500 },
+        "durasiMenit": { "type": "number" },
+        "jumlahPemain": { "type": "string", "maxLength": 50 },
+        "shareCode": { "type": "string", "maxLength": 20 },
+        "isPublic": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "judulGame", "jenisGame", "mataPelajaran", "materi", "createdAt"]
+    },
+    "RPM": {
+      "title": "RPM",
+      "description": "Rencana Pembelajaran Mendalam hasil kurasi NOVA",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "materialId": { "type": "string", "maxLength": 128 },
+        "judul": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "judul", "createdAt"]
+    },
+    "NovaAnalysis": {
+      "title": "NovaAnalysis",
+      "description": "Hasil analisis AI NOVA terhadap suara dan refleksi siswa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "materialId": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "maxLength": 50 },
+        "ringkasanSuaraSiswa": { "type": "string", "maxLength": 2000 },
+        "persentasePaham": { "type": "number" },
+        "persentaseButuhDukungan": { "type": "number" }
+      },
+      "required": ["id", "timestamp", "ringkasanSuaraSiswa"]
+    }
+  },
+  "firestore": {
+    "/teachers/{teacherId}": {
+      "schema": { "$ref": "#/entities/Teacher" },
+      "description": "Akun dan profil guru di NOVA"
+    },
+    "/students_reflections/{reflectionId}": {
+      "schema": { "$ref": "#/entities/StudentReflection" },
+      "description": "Refleksi siswa 5 dimensi"
+    },
+    "/materials/{materialId}": {
+      "schema": { "$ref": "#/entities/Material" },
+      "description": "Materi pembelajaran"
+    },
+    "/games/{gameId}": {
+      "schema": { "$ref": "#/entities/EducationalGame" },
+      "description": "Bank Game Edukasi yang dapat dibagikan"
+    },
+    "/rpms/{rpmId}": {
+      "schema": { "$ref": "#/entities/RPM" },
+      "description": "Dokumen Rencana Pembelajaran Mendalam"
+    },
+    "/analysisList/{analysisId}": {
+      "schema": { "$ref": "#/entities/NovaAnalysis" },
+      "description": "Laporan Analisis Insight NOVA"
+    }
+  }
+}

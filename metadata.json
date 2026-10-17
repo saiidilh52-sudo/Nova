@@ -1,0 +1,6 @@
+{
+  "name": "NOVA - Narasi, Observasi, Voice, Aspirasi",
+  "description": "Aplikasi refleksi dan analisis pembelajaran berbasis suara siswa: Suaramu menjadi arah pembelajaran.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

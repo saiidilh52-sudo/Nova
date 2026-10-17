@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // Refleksi Siswa: Siswa dapat mengirim refleksi, guru dapat membaca & mengelola
+    match /students_reflections/{reflectionId} {
+      allow read: if true;
+      allow create: if isValidId(reflectionId);
+      allow update, delete: if true;
+    }
+
+    // Materi Pembelajaran
+    match /materials/{materialId} {
+      allow read: if true;
+      allow write: if isValidId(materialId);
+    }
+
+    // Bank Game Edukasi (Bisa di-share dan dimainkan siswa)
+    match /games/{gameId} {
+      allow read: if true;
+      allow write: if isValidId(gameId);
+    }
+
+    // Dokumen Rencana Pembelajaran Mendalam (RPM)
+    match /rpms/{rpmId} {
+      allow read: if true;
+      allow write: if isValidId(rpmId);
+    }
+
+    // Profil Guru & Akun
+    match /teachers/{teacherId} {
+      allow read: if true;
+      allow write: if isValidId(teacherId);
+    }
+
+    // Analisis NOVA Insight
+    match /analysisList/{analysisId} {
+      allow read: if true;
+      allow write: if isValidId(analysisId);
+    }
+
+    // Default deny for any other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
