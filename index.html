@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,10 +10,108 @@
     <meta property="og:description" content="Aplikasi refleksi dan analisis pembelajaran berbasis suara siswa (Narasi, Observasi, Voice, Aspirasi): Suaramu menjadi arah pembelajaran." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <style>
+      /* Fallback styles in case CSS bundle hasn't loaded or script failed */
+      #nova-boot-loader {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #0f172a 100%);
+        color: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        padding: 24px;
+        text-align: center;
+        z-index: 9999;
+      }
+      .nova-boot-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid rgba(129, 140, 248, 0.2);
+        border-top-color: #818cf8;
+        border-radius: 50%;
+        animation: nova-spin 0.8s linear infinite;
+        margin-bottom: 20px;
+      }
+      @keyframes nova-spin {
+        to { transform: rotate(360deg); }
+      }
+      .nova-boot-btn {
+        background: linear-gradient(135deg, #4f46e5, #9333ea);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        font-weight: 700;
+        font-size: 14px;
+        border-radius: 12px;
+        cursor: pointer;
+        margin-top: 16px;
+        transition: opacity 0.2s;
+        text-decoration: none;
+      }
+      .nova-boot-btn:hover { opacity: 0.9; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Resilient initial boot screen: gets replaced as soon as React mounts -->
+      <div id="nova-boot-loader">
+        <div class="nova-boot-spinner"></div>
+        <div style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px; background: linear-gradient(to right, #ffffff, #c7d2fe, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+          NOVA
+        </div>
+        <div style="font-size: 13px; font-weight: 600; color: #a5b4fc; margin-top: 6px; letter-spacing: 0.2px;">
+          (Narasi, Observasi, Voice, Aspirasi)
+        </div>
+        <div style="font-size: 12px; color: #94a3b8; margin-top: 14px; max-width: 320px;">
+          Memuat sistem refleksi dan pembelajaran mendalam...
+        </div>
+        <div id="nova-boot-recovery" style="display: none; margin-top: 24px; max-width: 420px; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 16px; padding: 18px;">
+          <div style="color: #f87171; font-weight: 800; font-size: 15px;">Koneksi / Pembaruan Terdeteksi</div>
+          <div id="nova-boot-err-msg" style="color: #cbd5e1; font-size: 13px; margin-top: 6px; line-height: 1.5;">
+            Versi aplikasi telah diperbarui atau jaringan terputus. Silakan klik tombol di bawah untuk menyegarkan tampilan.
+          </div>
+          <button class="nova-boot-btn" onclick="window.location.href = window.location.pathname + '?reload=' + Date.now();">
+            Muat Ulang Halaman
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resilience script to detect script loading failures (e.g. 404 bundle on Vercel) -->
+    <script>
+      (function() {
+        var recoveryBox = document.getElementById('nova-boot-recovery');
+        var errMsg = document.getElementById('nova-boot-err-msg');
+        
+        function showRecovery(message) {
+          if (recoveryBox) {
+            recoveryBox.style.display = 'block';
+            if (message && errMsg) errMsg.innerText = message;
+          }
+        }
+
+        window.addEventListener('error', function(event) {
+          // If a script resource failed to load (e.g., 404 on Vercel or CDN hash mismatch)
+          if (event.target && (event.target.tagName === 'SCRIPT' || event.target.tagName === 'LINK')) {
+            showRecovery('Berkas aplikasi versi terbaru perlu disinkronkan. Klik tombol di bawah untuk memuat ulang.');
+          }
+        }, true);
+
+        // Fallback: If after 7 seconds React hasn't replaced #nova-boot-loader, reveal reload button
+        setTimeout(function() {
+          var loader = document.getElementById('nova-boot-loader');
+          if (loader) {
+            showRecovery('Memuat membutuhkan waktu lebih lama. Klik tombol di bawah jika halaman belum tampil.');
+          }
+        }, 7000);
+      })();
+    </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+
 

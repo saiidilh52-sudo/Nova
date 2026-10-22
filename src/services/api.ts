@@ -46,6 +46,104 @@ export const safeStorage = {
 
 const MOCK_NAMES = ['Ahmad Faiz', 'Siti Rahmawati', 'Budi Santoso', 'Cantika Dewi', 'Dimas Aditya'];
 
+// Safe fetch helper that gracefully handles HTML 404/500 responses on static hosts like Vercel
+async function safeFetchJson<T>(url: string, options?: RequestInit): Promise<T | null> {
+  try {
+    const res = await fetch(url, options);
+    if (!res.ok) return null;
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+const DEFAULT_INITIAL_MATERIAL: Material = {
+  id: 'mat-ppkn-x-1',
+  teacherId: 'guru-demo-1',
+  mataPelajaran: 'Pendidikan Pancasila & Kewarganegaraan (PPKn)',
+  kelas: 'X (Fase E)',
+  topik: 'Norma dan Konstitusi UUD NRI Tahun 1945',
+  tujuanPembelajaran: 'Peserta didik mampu menganalisis norma dan hierarki peraturan perundang-undangan serta menerapkannya dalam kehidupan sehari-hari.',
+  capaianPembelajaran: 'Peserta didik menganalisis norma dan perundang-undangan, mengidentifikasi pelanggaran norma, serta memprakarsai aksi ketaatan hukum.',
+  materi: 'Hierarki perundang-undangan menurut UU No. 12 Tahun 2011, norma kesusilaan, kesopanan, agama, dan hukum.',
+  durasi: '2 x 45 Menit (90 Menit)',
+  karakteristikPesertaDidik: 'Aktif, visual dan kinestetik, senang berkolaborasi namun sebagian mudah jenuh jika hanya ceramah teks panjang.',
+  catatanGuru: 'Pertemuan sebelumnya siswa masih bingung membedakan tingkatan TAP MPR dan Perpu.',
+  createdAt: '2026-10-20T00:00:00.000Z',
+};
+
+const DEFAULT_INITIAL_GAME: EducationalGame = {
+  id: 'game-norma-konstitusi-1',
+  code: 'NV-2026',
+  teacherId: 'guru-demo-1',
+  materialId: 'mat-ppkn-x-1',
+  namaGame: 'Tantangan Balapan Norma & Konstitusi',
+  kategori: 'Balapan Mobil',
+  mataPelajaran: 'Pendidikan Pancasila & Kewarganegaraan (PPKn)',
+  kelas: 'X (Fase E)',
+  materi: 'Norma dan Konstitusi UUD NRI Tahun 1945',
+  tujuan: 'Memperkuat pemahaman hierarki peraturan dan penerapan norma hukum dalam kehidupan berbangsa.',
+  durasi: '15 Menit',
+  jumlahPemain: '36 Siswa (6 Tim)',
+  aturan: [
+    'Bentuk tim beranggotakan 4-5 murid secara heterogen.',
+    'Jawab setiap butir tantangan kuis dengan musyawarah kelompok.',
+    'Setiap jawaban tepat menggerakkan mobil tim maju 1 langkah menuju garis akhir.'
+  ],
+  langkah: [
+    'Guru menampilkan arena game balapan di layar proyektor.',
+    'Setiap tim memilih avatar dan berdiskusi memilih jawaban kuis.',
+    'Skor dan posisi balapan bergerak otomatis setiap babak selesai.'
+  ],
+  pertanyaan: [
+    {
+      id: 1,
+      soal: 'Peraturan perundang-undangan tertinggi dalam tata urutan peraturan di Indonesia menurut UU No. 12 Tahun 2011 adalah...',
+      pilihan: ['Ketetapan MPR', 'UUD NRI Tahun 1945', 'Undang-Undang / Perpu', 'Peraturan Pemerintah'],
+      kunci: 'B',
+      pembahasan: 'UUD NRI Tahun 1945 merupakan hukum dasar tertinggi dalam hierarki peraturan perundang-undangan nasional.',
+      poin: 20
+    },
+    {
+      id: 2,
+      soal: 'Norma yang bersumber dari hati nurani manusia tentang baik dan buruk dinamakan norma...',
+      pilihan: ['Norma Agama', 'Norma Hukum', 'Norma Kesusilaan', 'Norma Kesopanan'],
+      kunci: 'C',
+      pembahasan: 'Norma kesusilaan bersumber dari suara hati nurani manusia yang membedakan perbuatan baik dan tercela.',
+      poin: 20
+    },
+    {
+      id: 3,
+      soal: 'Apabila terjadi pertentangan antara Peraturan Daerah (Perda) dengan Peraturan Pemerintah (PP), maka yang harus dimenangkan adalah...',
+      pilihan: ['Perda, karena sesuai otonomi daerah', 'Peraturan Pemerintah, sesuai asas hierarki hukum', 'Keduanya batal demi hukum', 'Diserahkan pada keputusan kepala desa'],
+      kunci: 'B',
+      pembahasan: 'Berdasarkan asas Lex Superior Derogat Legi Inferiori, peraturan yang lebih tinggi kedudukannya (PP) mengesampingkan peraturan yang lebih rendah (Perda).',
+      poin: 20
+    },
+    {
+      id: 4,
+      soal: 'Sanksi bagi pelanggar norma kesopanan umumnya berwujud...',
+      pilihan: ['Hukuman penjara atau denda', 'Dosa dan penyesalan batin', 'Tercela, dicemooh, atau dikucilkan dari pergaulan sosial', 'Penyitaan barang bukti oleh pengadilan'],
+      kunci: 'C',
+      pembahasan: 'Norma kesopanan berakar dari adat dan kepatutan sosial, sehingga sanksinya berupa celaan atau pengucilan sosial.',
+      poin: 20
+    },
+    {
+      id: 5,
+      soal: 'Lembaga negara yang berwenang menguji materi Undang-Undang terhadap UUD NRI Tahun 1945 (Judicial Review) adalah...',
+      pilihan: ['Mahkamah Agung (MA)', 'Mahkamah Konstitusi (MK)', 'Dewan Perwakilan Rakyat (DPR)', 'Komisi Yudisial (KY)'],
+      kunci: 'B',
+      pembahasan: 'Mahkamah Konstitusi berwenang menguji undang-undang terhadap Undang-Undang Dasar.',
+      poin: 20
+    }
+  ],
+  sistemSkor: 'Setiap jawaban tepat bernilai 20 poin dan mobil tim bergerak maju 1 langkah.',
+  caraMenentukanPemenang: 'Tim pertama yang mencapai garis finish atau mengumpulkan poin tertinggi di akhir sesi kuis.',
+  createdAt: '2026-10-20T00:00:00.000Z'
+};
+
 export const apiService = {
   // Authentication
   async registerTeacher(namaGuru: string, email: string, password: string): Promise<{ success: boolean; teacher?: Teacher; error?: string }> {
@@ -76,13 +174,12 @@ export const apiService = {
 
     // 2. Save to Server DB
     try {
-      const res = await fetch('/api/auth/register', {
+      const data = await safeFetchJson<{ teacher?: Teacher }>('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ namaGuru: cleanName, email: cleanEmail, password: cleanPass }),
       });
-      const data = await res.json();
-      if (res.ok && data.teacher) {
+      if (data?.teacher) {
         newTeacher.id = data.teacher.id;
       }
     } catch (err) {
@@ -117,17 +214,14 @@ export const apiService = {
 
     // 1. Check Server API
     try {
-      const res = await fetch('/api/auth/login', {
+      const data = await safeFetchJson<{ teacher?: Teacher }>('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: cleanEmail, password: cleanPass }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.teacher) {
-          safeStorage.setItem(STORAGE_KEYS.TEACHER, JSON.stringify(data.teacher));
-          return data;
-        }
+      if (data?.teacher) {
+        safeStorage.setItem(STORAGE_KEYS.TEACHER, JSON.stringify(data.teacher));
+        return { success: true, teacher: data.teacher };
       }
     } catch (err) {
       console.warn('Server login check failed, falling back to Firestore & Local Storage');
@@ -202,20 +296,13 @@ export const apiService = {
 
     // 2. Try Server API if Firestore was empty
     if (combinedList.length === 0) {
-      try {
-        const params = new URLSearchParams();
-        if (materialId) params.append('materialId', materialId);
-        if (kelas) params.append('kelas', kelas);
+      const params = new URLSearchParams();
+      if (materialId) params.append('materialId', materialId);
+      if (kelas) params.append('kelas', kelas);
 
-        const res = await fetch(`/api/reflections?${params.toString()}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data && Array.isArray(json.data)) {
-            combinedList = json.data;
-          }
-        }
-      } catch (e) {
-        console.warn('Server reflections fetch notice:', e);
+      const resData = await safeFetchJson<{ data: StudentReflection[] }>(`/api/reflections?${params.toString()}`);
+      if (resData?.data && Array.isArray(resData.data)) {
+        combinedList = resData.data;
       }
     }
 
@@ -284,28 +371,29 @@ export const apiService = {
 
     // 2. Try Server API
     if (list.length === 0) {
-      try {
-        const res = await fetch('/api/materials');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-            list = json.data;
-          }
-        }
-      } catch (e) {
-        console.warn('Server materials fetch notice:', e);
+      const resData = await safeFetchJson<{ data: Material[] }>('/api/materials');
+      if (resData?.data && Array.isArray(resData.data) && resData.data.length > 0) {
+        list = resData.data;
       }
     }
 
     // 3. Try Local Storage
     if (list.length === 0) {
       const raw = safeStorage.getItem(STORAGE_KEYS.MATERIALS);
-      if (raw) list = JSON.parse(raw);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
+        } catch {}
+      }
     }
 
-    if (list.length > 0) {
-      safeStorage.setItem(STORAGE_KEYS.MATERIALS, JSON.stringify(list));
+    // 4. Default Seed Fallback (guarantees app never runs on empty material state)
+    if (list.length === 0) {
+      list = [DEFAULT_INITIAL_MATERIAL];
     }
+
+    safeStorage.setItem(STORAGE_KEYS.MATERIALS, JSON.stringify(list));
     return list;
   },
 
@@ -370,26 +458,29 @@ export const apiService = {
 
     // 2. Try Server API
     if (list.length === 0) {
-      try {
-        const res = await fetch('/api/games');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-            list = json.data;
-          }
-        }
-      } catch (e) {}
+      const resData = await safeFetchJson<{ data: EducationalGame[] }>('/api/games');
+      if (resData?.data && Array.isArray(resData.data) && resData.data.length > 0) {
+        list = resData.data;
+      }
     }
 
     // 3. Try Local Storage
     if (list.length === 0) {
       const raw = safeStorage.getItem(STORAGE_KEYS.GAMES);
-      if (raw) list = JSON.parse(raw);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
+        } catch {}
+      }
     }
 
-    if (list.length > 0) {
-      safeStorage.setItem(STORAGE_KEYS.GAMES, JSON.stringify(list));
+    // 4. Default Seed Fallback
+    if (list.length === 0) {
+      list = [DEFAULT_INITIAL_GAME];
     }
+
+    safeStorage.setItem(STORAGE_KEYS.GAMES, JSON.stringify(list));
     return list;
   },
 
@@ -456,21 +547,21 @@ export const apiService = {
 
     // 2. Try Server API
     if (list.length === 0) {
-      try {
-        const res = await fetch('/api/rpms');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-            list = json.data;
-          }
-        }
-      } catch (e) {}
+      const resData = await safeFetchJson<{ data: RPMStructure[] }>('/api/rpms');
+      if (resData?.data && Array.isArray(resData.data) && resData.data.length > 0) {
+        list = resData.data;
+      }
     }
 
     // 3. Try Local Storage
     if (list.length === 0) {
       const raw = safeStorage.getItem(STORAGE_KEYS.RPMS);
-      if (raw) list = JSON.parse(raw);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) list = parsed;
+        } catch {}
+      }
     }
 
     if (list.length > 0) {
