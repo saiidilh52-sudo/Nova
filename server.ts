@@ -87,7 +87,14 @@ function getGeminiClient(): GoogleGenAI | null {
   if (!apiKey) {
     return null;
   }
-  return new GoogleGenAI();
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      },
+    },
+  });
 }
 
 // API Routes
