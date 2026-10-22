@@ -245,6 +245,7 @@ export default function App() {
                     rpms={rpms}
                     materials={materials}
                     games={games}
+                    reflections={reflections}
                     activeAnalysis={analysis}
                     initialMaterial={focusedMaterial}
                     onRefreshRPMs={refreshAllData}

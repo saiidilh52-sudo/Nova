@@ -21,15 +21,23 @@ import {
   Compass,
   CheckCircle2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Plus,
+  Zap,
+  Target,
+  Sliders,
+  Award,
+  ListChecks,
+  HelpCircle
 } from 'lucide-react';
-import { RPMStructure, Material, EducationalGame, NovaAnalysis } from '../types';
+import { RPMStructure, Material, EducationalGame, NovaAnalysis, StudentReflection, GameQuestion } from '../types';
 import { apiService } from '../services/api';
 
 interface RpmGeneratorProps {
   rpms: RPMStructure[];
   materials: Material[];
   games: EducationalGame[];
+  reflections?: StudentReflection[];
   activeAnalysis?: NovaAnalysis | null;
   initialMaterial?: Material;
   onRefreshRPMs: () => void;
@@ -42,6 +50,7 @@ export const RpmGenerator: React.FC<RpmGeneratorProps> = ({
   rpms,
   materials,
   games,
+  reflections,
   activeAnalysis,
   initialMaterial,
   onRefreshRPMs,
@@ -61,71 +70,300 @@ export const RpmGenerator: React.FC<RpmGeneratorProps> = ({
   const [isAiEditing, setIsAiEditing] = useState<boolean>(false);
 
   // Generator inputs: Baseline Material & Editable Next Lesson Material
+  const [baselineMode, setBaselineMode] = useState<'SELECT' | 'CUSTOM'>('SELECT');
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>(
     initialMaterial?.id || materials[0]?.id || ''
   );
 
   const selectedMaterial = materials.find(m => m.id === selectedMaterialId) || initialMaterial || materials[0];
 
+  // Custom Baseline fields if teacher types custom baseline reference
+  const [customBaselineTopic, setCustomBaselineTopic] = useState<string>(selectedMaterial?.topik || 'Norma dan Konstitusi UUD NRI Tahun 1945');
+  const [customBaselineSubject, setCustomBaselineSubject] = useState<string>(selectedMaterial?.mataPelajaran || 'Pendidikan Pancasila & Kewarganegaraan (PPKn)');
+  const [customBaselineKelas, setCustomBaselineKelas] = useState<string>(selectedMaterial?.kelas || 'X (Fase E)');
+
   // Editable fields for Next Lesson (Materi Pertemuan Berikutnya)
-  const [topikBerikutnya, setTopikBerikutnya] = useState<string>(selectedMaterial?.topik || '');
-  const [mataPelajaranBerikutnya, setMataPelajaranBerikutnya] = useState<string>(selectedMaterial?.mataPelajaran || '');
-  const [kelasBerikutnya, setKelasBerikutnya] = useState<string>(selectedMaterial?.kelas || '');
+  const [topikBerikutnya, setTopikBerikutnya] = useState<string>(
+    selectedMaterial?.topik ? `${selectedMaterial.topik} (Pertemuan Berikutnya)` : 'Penerapan Norma Hukum & Hak Kewajiban Warga Negara'
+  );
+  const [subTopikBerikutnya, setSubTopikBerikutnya] = useState<string>(
+    'Hierarki Peraturan Perundang-undangan RI (UU No. 12/2011), Analisis Pasal UUD 1945, dan Studi Kasus Penegakan Norma di Masyarakat'
+  );
+  const [kesinambunganMateri, setKesinambunganMateri] = useState<string>(
+    'Melanjutkan pemahaman konsep sesi lalu dengan fokus mengurai kesulitan analisis pasal dan mempraktikkan pemecahan kasus nyata.'
+  );
+  const [mataPelajaranBerikutnya, setMataPelajaranBerikutnya] = useState<string>(selectedMaterial?.mataPelajaran || 'Pendidikan Pancasila & Kewarganegaraan (PPKn)');
+  const [kelasBerikutnya, setKelasBerikutnya] = useState<string>(selectedMaterial?.kelas || 'X (Fase E)');
   const [alokasiWaktuBerikutnya, setAlokasiWaktuBerikutnya] = useState<string>(selectedMaterial?.durasi || '2 x 45 Menit (90 Menit)');
-  const [capaianBerikutnya, setCapaianBerikutnya] = useState<string>(selectedMaterial?.capaianPembelajaran || '');
-  const [tujuanBerikutnya, setTujuanBerikutnya] = useState<string>(selectedMaterial?.tujuanPembelajaran || '');
+  const [capaianBerikutnya, setCapaianBerikutnya] = useState<string>(
+    selectedMaterial?.capaianPembelajaran || 'Peserta didik menganalisis norma dan perundang-undangan, mengidentifikasi pelanggaran norma, serta memprakarsai aksi ketaatan hukum berkeadilan.'
+  );
+  const [tujuanBerikutnya, setTujuanBerikutnya] = useState<string>(
+    selectedMaterial?.tujuanPembelajaran || 'Melalui eksplorasi kasus kontekstual dan game edukasi terintegrasi, peserta didik mampu menguraikan tata urutan regulasi hukum dan memecahkan dilema norma bermasyarakat dengan nalar kritis dan gotong royong.'
+  );
   const [catatanDiferensiasi, setCatatanDiferensiasi] = useState<string>('');
-  const [showAdvancedMaterialEdit, setShowAdvancedMaterialEdit] = useState<boolean>(false);
+  const [savingMaterial, setSavingMaterial] = useState<boolean>(false);
+
+  // Live Student Reflection Analysis Extractor (from activeAnalysis or directly from reflections prop)
+  const liveInsights = (() => {
+    if (activeAnalysis && activeAnalysis.materiSulit && activeAnalysis.materiSulit.length > 0) {
+      return {
+        materiSulit: activeAnalysis.materiSulit,
+        preferensiMedia: activeAnalysis.preferensiMedia || '🎮 Game Interaktif & Quiz Battle',
+        preferensiAktivitas: activeAnalysis.preferensiAktivitas || '👥 Diskusi Kelompok & Game Edukasi',
+        persentaseButuhBimbingan: activeAnalysis.persentaseButuhBimbingan ?? 28,
+        persentasePositif: activeAnalysis.persentasePositif ?? 84,
+        kondisiKelas: activeAnalysis.kondisiKelas || 'Siswa antusias dan membutuhkan pengalaman belajar interaktif yang terarah.',
+        alasan: activeAnalysis.alasanRekomendasi || 'Siswa memerlukan pembelajaran berbasis tantangan kolaboratif untuk mengurai konsep sulit.'
+      };
+    }
+    if (reflections && reflections.length > 0) {
+      const total = reflections.length;
+      const diffs: string[] = [];
+      const mediaCount: Record<string, number> = {};
+      const actCount: Record<string, number> = {};
+      let needHelp = 0;
+      let positive = 0;
+
+      reflections.forEach((r: StudentReflection) => {
+        const mood = (r.mood || '').toLowerCase();
+        if (mood.includes('senang') || mood.includes('happy') || mood.includes('semangat') || mood.includes('excited') || mood.includes('biasa')) {
+          positive++;
+        }
+        if (r.tingkatPemahaman === 'Belum Paham' || r.tingkatPemahaman === 'Cukup Paham' || (r.bantuanGuruDibutuhkan && r.bantuanGuruDibutuhkan.length > 0)) {
+          needHelp++;
+        }
+        if (r.bagianMenantang && typeof r.bagianMenantang === 'string') {
+          const clean = r.bagianMenantang.replace(/^[^\w\s]+/, '').trim();
+          if (clean.length > 2 && !clean.toLowerCase().includes('lancar')) {
+            diffs.push(clean);
+          }
+        }
+        (r.pilihanMedia || []).forEach((m: string) => { mediaCount[m] = (mediaCount[m] || 0) + 1; });
+        (r.pilihanAktivitas || []).forEach((a: string) => { actCount[a] = (actCount[a] || 0) + 1; });
+      });
+
+      const topMedia = Object.entries(mediaCount).sort((a,b) => b[1] - a[1])[0]?.[0] || '🎮 Game Interaktif & Quiz Battle';
+      const topAct = Object.entries(actCount).sort((a,b) => b[1] - a[1])[0]?.[0] || '👥 Diskusi Kelompok & Game Edukasi';
+      const uniqueDiffs = Array.from(new Set(diffs)).filter(d => d.length > 2);
+
+      return {
+        materiSulit: uniqueDiffs.length > 0 ? uniqueDiffs.slice(0, 4) : [
+          'Menganalisis Pasal UUD 1945 & Tata Hierarki Norma Hukum',
+          'Membedakan Hak dan Kewajiban Warga Negara dalam Praktik Nyata'
+        ],
+        preferensiMedia: topMedia,
+        preferensiAktivitas: topAct,
+        persentaseButuhBimbingan: Math.round((needHelp / total) * 100) || 28,
+        persentasePositif: Math.round((positive / total) * 100) || 84,
+        kondisiKelas: `${Math.round((positive / total) * 100) || 84}% peserta didik bersemangat, namun ${Math.round((needHelp / total) * 100) || 28}% siswa memerlukan pendampingan bertahap.`,
+        alasan: `Refleksi dari ${total} murid menunjukkan respon positif jika materi abstrak dikemas ke dalam tantangan gamifikasi tim.`
+      };
+    }
+    return {
+      materiSulit: [
+        'Menganalisis Pasal UUD 1945 & Tata Hierarki Norma Hukum (PPKn)',
+        'Membedakan Hak dan Kewajiban Warga Negara dalam Kasus Nyata'
+      ],
+      preferensiMedia: '🏎️ Game Balapan Mobil Interaktif',
+      preferensiAktivitas: '⚡ Kuis Cepat Tanggap & Diskusi Tim Heterogen',
+      persentaseButuhBimbingan: 32,
+      persentasePositif: 85,
+      kondisiKelas: 'Peserta didik menyukai pembelajaran kolaboratif namun memerlukan jembatan analogi konkret pada konsep sulit.',
+      alasan: 'Gamifikasi kolaboratif menjawab kebutuhan penguatan konsep sulit dan keterlibatan aktif.'
+    };
+  })();
 
   // Integrated Game Selection Mode: 'RECOMMENDED' (sesuai refleksi murid) | 'BANK' | 'CUSTOM'
-  const [gameSourceMode, setGameSourceMode] = useState<'RECOMMENDED' | 'BANK' | 'CUSTOM'>(
-    activeAnalysis?.recommendedGame ? 'RECOMMENDED' : (games.length > 0 ? 'BANK' : 'CUSTOM')
-  );
+  const [gameSourceMode, setGameSourceMode] = useState<'RECOMMENDED' | 'BANK' | 'CUSTOM'>('RECOMMENDED');
   const [selectedGameId, setSelectedGameId] = useState<string>(games[0]?.id || '');
-  const [customGameName, setCustomGameName] = useState<string>(activeAnalysis?.recommendedGame?.namaGame || '');
-  const [customGameCategory, setCustomGameCategory] = useState<string>(activeAnalysis?.recommendedGame?.kategori || 'Balapan Mobil');
+  const [customGameName, setCustomGameName] = useState<string>(() => {
+    return activeAnalysis?.recommendedGame?.namaGame || `Balapan Mobil: Sirkuit Norma & Hierarki Hukum`;
+  });
+  const [customGameCategory, setCustomGameCategory] = useState<string>(() => {
+    return activeAnalysis?.recommendedGame?.kategori || 'Balapan Mobil';
+  });
+  const [fokusHambatanGame, setFokusHambatanGame] = useState<string>(() => {
+    return `Mengatasi hambatan siswa pada: ${liveInsights.materiSulit[0] || 'Menganalisis Pasal UUD 1945 & Tata Urutan Regulasi Hukum'}`;
+  });
+  const [mekanismeTutorSebaya, setMekanismeTutorSebaya] = useState<string>(
+    'Pembentukan 4 kelompok heterogen (tutor sebaya) dengan sistem poin apresiatif untuk mendorong murid yang butuh bimbingan.'
+  );
+  const [durasiGame, setDurasiGame] = useState<string>('25 Menit');
+  const [jumlahPemainGame, setJumlahPemainGame] = useState<string>('4-5 orang per tim heterogen');
 
   const [sekolah, setSekolah] = useState<string>('SMA Negeri Indonesia');
   const [namaGuru, setNamaGuru] = useState<string>(() => apiService.getActiveTeacher()?.namaGuru || 'Dra. Sri Rahayu, M.Pd');
+
+  // Quick edit modal state for existing RPM
+  const [showQuickEditModal, setShowQuickEditModal] = useState<boolean>(false);
+  const [quickEditTopic, setQuickEditTopic] = useState<string>('');
+  const [quickEditMataPelajaran, setQuickEditMataPelajaran] = useState<string>('');
+  const [quickEditKelas, setQuickEditKelas] = useState<string>('');
+  const [quickEditAlokasi, setQuickEditAlokasi] = useState<string>('');
+  const [quickEditGameName, setQuickEditGameName] = useState<string>('');
 
   // React to initialMaterial changes
   useEffect(() => {
     if (initialMaterial?.id) {
       setSelectedMaterialId(initialMaterial.id);
+      setCustomBaselineTopic(initialMaterial.topik);
+      setCustomBaselineSubject(initialMaterial.mataPelajaran);
+      setCustomBaselineKelas(initialMaterial.kelas);
     }
   }, [initialMaterial?.id]);
 
   // When selected baseline material changes, populate defaults for next lesson
   useEffect(() => {
-    if (selectedMaterial) {
-      setTopikBerikutnya(selectedMaterial.topik || '');
+    if (selectedMaterial && baselineMode === 'SELECT') {
+      const nextTopic = selectedMaterial.topik 
+        ? `${selectedMaterial.topik} - Lanjutan & Penegakan Kasus (Pertemuan 2)` 
+        : 'Materi Lanjutan';
+      setTopikBerikutnya(nextTopic);
       setMataPelajaranBerikutnya(selectedMaterial.mataPelajaran || '');
       setKelasBerikutnya(selectedMaterial.kelas || '');
       setAlokasiWaktuBerikutnya(selectedMaterial.durasi || '2 x 45 Menit (90 Menit)');
       setCapaianBerikutnya(selectedMaterial.capaianPembelajaran || '');
-      setTujuanBerikutnya(selectedMaterial.tujuanPembelajaran || '');
+      setTujuanBerikutnya(
+        `Melalui eksplorasi kasus kontekstual dan game edukasi terpadu, peserta didik mampu memahami, menganalisis, serta mengaplikasikan prinsip ${selectedMaterial.topik || 'materi'} secara kritis dan gotong royong.`
+      );
     }
-  }, [selectedMaterialId]);
+  }, [selectedMaterialId, baselineMode]);
 
-  // When activeAnalysis changes, sync recommended game and student diagnostic focus
+  // When activeAnalysis or live insights change, sync recommended game and student diagnostic focus
   useEffect(() => {
     if (activeAnalysis?.recommendedGame) {
-      setGameSourceMode('RECOMMENDED');
       setCustomGameName(activeAnalysis.recommendedGame.namaGame);
       setCustomGameCategory(activeAnalysis.recommendedGame.kategori);
     }
-    if (activeAnalysis?.materiSulit && activeAnalysis.materiSulit.length > 0) {
+    if (liveInsights.materiSulit && liveInsights.materiSulit.length > 0) {
       setCatatanDiferensiasi(
-        `Fokus penguatan kesulitan konsep siswa pada: ${activeAnalysis.materiSulit.join(', ')}. Pendekatan dominan: ${activeAnalysis.preferensiMedia || 'Game Edukasi'}.`
+        `Fokus penguatan kesulitan konsep siswa pada: ${liveInsights.materiSulit.join(', ')}. Diselaraskan dengan preferensi media siswa: ${liveInsights.preferensiMedia}.`
       );
+      setFokusHambatanGame(`Mengatasi hambatan konsep pada: ${liveInsights.materiSulit.slice(0, 2).join(' dan ')}.`);
     }
-  }, [activeAnalysis]);
+  }, [activeAnalysis, liveInsights.materiSulit]);
+
+  // Handle saving new next-lesson material to teacher's materials bank
+  const handleSaveNewMaterialToBank = async () => {
+    if (!topikBerikutnya.trim()) {
+      setRpmNotification({ message: 'Tuliskan topik materi pertemuan berikutnya terlebih dahulu.', type: 'error' });
+      return;
+    }
+    setSavingMaterial(true);
+    try {
+      const activeTeacher = apiService.getActiveTeacher();
+      const saved = await apiService.saveMaterial({
+        teacherId: activeTeacher?.id || 'teacher_demo',
+        topik: topikBerikutnya.trim(),
+        mataPelajaran: mataPelajaranBerikutnya.trim() || 'Pendidikan Pancasila & Kewarganegaraan (PPKn)',
+        kelas: kelasBerikutnya.trim() || 'X (Fase E)',
+        durasi: alokasiWaktuBerikutnya.trim() || '2 x 45 Menit (90 Menit)',
+        capaianPembelajaran: capaianBerikutnya.trim() || 'Peserta didik menganalisis dan menerapkan konsep esensial materi.',
+        tujuanPembelajaran: tujuanBerikutnya.trim() || 'Peserta didik memahami konsep melalui eksplorasi kontekstual dan game edukasi.',
+        materi: subTopikBerikutnya.trim() || topikBerikutnya.trim(),
+        karakteristikPesertaDidik: 'Aktif, menyukai tantangan gamifikasi dan diskusi kelompok interaktif.',
+        catatanGuru: catatanDiferensiasi.trim() || 'Fokus pada penguatan konsep sulit dan partisipasi aktif seluruh murid.'
+      });
+      onRefreshRPMs();
+      setRpmNotification({ message: `✅ Materi "${saved.topik}" berhasil disimpan ke Bank Materi Guru!`, type: 'success' });
+    } catch (err: any) {
+      setRpmNotification({ message: 'Gagal menyimpan materi: ' + (err.message || 'Coba lagi'), type: 'error' });
+    } finally {
+      setSavingMaterial(false);
+    }
+  };
+
+  // Preset quick selections for continuous topics
+  const handleApplyNextTopicPreset = (presetTopic: string, presetSub: string) => {
+    setTopikBerikutnya(presetTopic);
+    setSubTopikBerikutnya(presetSub);
+    setTujuanBerikutnya(
+      `Melalui penyelidikan kasus dan game edukasi terpadu, peserta didik mampu mengidentifikasi, menganalisis keterkaitan, dan memecahkan persoalan ${presetTopic} secara kritis.`
+    );
+  };
+
+  // Preset quick selection for game tailored to student reflections
+  const handleApplyGamePreset = (nama: string, kategori: string, hambatan: string, mekanisme: string) => {
+    setGameSourceMode('RECOMMENDED');
+    setCustomGameName(nama);
+    setCustomGameCategory(kategori);
+    setFokusHambatanGame(hambatan);
+    setMekanismeTutorSebaya(mekanisme);
+    setRpmNotification({
+      message: `🎯 Game terintegrasi diselaraskan dengan: "${nama}" (${kategori}) untuk mengatasi ${hambatan}`,
+      type: 'success'
+    });
+  };
+
+  // Generate question items for the integrated game targeting difficult concepts
+  const generateGameQuestions = (topic: string, subject: string, difficulties: string[]): GameQuestion[] => {
+    const d1 = difficulties[0] || 'Hierarki Peraturan Perundang-undangan';
+    const d2 = difficulties[1] || 'Keseimbangan Hak dan Kewajiban Warga Negara';
+    return [
+      {
+        id: 1,
+        soal: `Dalam konteks materi "${topic}", norma dasar tertulis tertinggi yang menjadi payung seluruh peraturan perundang-undangan di Indonesia adalah...`,
+        pilihan: ['A. Ketetapan MPR', 'B. Undang-Undang Dasar NRI Tahun 1945', 'C. Peraturan Pemerintah', 'D. Peraturan Daerah'],
+        kunci: 'B',
+        pembahasan: 'Berdasarkan Pasal 7 ayat (1) UU No. 12 Tahun 2011, UUD NRI Tahun 1945 berkedudukan sebagai hukum dasar tertinggi di Indonesia.',
+        poin: 100
+      },
+      {
+        id: 2,
+        soal: `Untuk mengurai kesulitan pada materi "${d1}", asas hukum manakah yang menegaskan bahwa aturan hukum yang lebih tinggi mengesampingkan aturan hukum yang lebih rendah jika bertentangan?`,
+        pilihan: [
+          'A. Lex Posterior Derogat Legi Priori',
+          'B. Lex Superior Derogat Legi Inferiori',
+          'C. Lex Specialis Derogat Legi Generali',
+          'D. Asas Kepastian Hukum Mutlak'
+        ],
+        kunci: 'B',
+        pembahasan: 'Asas Lex Superior Derogat Legi Inferiori menegaskan bahwa norma hukum yang berderajat lebih tinggi mengesampingkan norma hukum yang berderajat lebih rendah.',
+        poin: 100
+      },
+      {
+        id: 3,
+        soal: `Apabila suatu Undang-Undang Republik Indonesia diduga bertentangan dengan Undang-Undang Dasar NRI 1945, lembaga peradilan manakah yang berwenang melakukan pengujian materil?`,
+        pilihan: ['A. Mahkamah Agung (MA)', 'B. Komisi Yudisial (KY)', 'C. Mahkamah Konstitusi (MK)', 'D. Dewan Perwakilan Rakyat (DPR)'],
+        kunci: 'C',
+        pembahasan: 'Mahkamah Konstitusi (MK) berwenang menguji Undang-Undang terhadap Undang-Undang Dasar Negara Republik Indonesia Tahun 1945.',
+        poin: 100
+      },
+      {
+        id: 4,
+        soal: `Terkait pemahaman "${d2}", contoh perwujudan keseimbangan hak dan kewajiban warga negara yang berkeadilan di lingkungan sekolah adalah...`,
+        pilihan: [
+          'A. Menuntut guru memberi nilai tinggi tanpa mau mengerjakan tugas',
+          'B. Menyampaikan pendapat dan aspirasi secara santun sekaligus mendengarkan dan menghormati pandangan teman',
+          'C. Meninggalkan ruang kelas tanpa merapikan bangku',
+          'D. Memaksakan kehendak pribadi dalam keputusan diskusi tim'
+        ],
+        kunci: 'B',
+        pembahasan: 'Keseimbangan hak dan kewajiban tercermin ketika siswa berani menggunakan hak berpendapat secara santun sembari menunaikan kewajiban menghormati hak orang lain.',
+        poin: 100
+      },
+      {
+        id: 5,
+        soal: `Mengapa dalam pembelajaran materi "${topic}" kolaborasi tim heterogen (tutor sebaya) sangat penting saat memecahkan studi kasus nyata?`,
+        pilihan: [
+          'A. Agar pekerjaan dapat diserahkan ke satu murid saja',
+          'B. Menghubungkan keberagaman sudut pandang, saling melengkapi konsep sulit, dan menumbuhkan dimensi Gotong Royong',
+          'C. Supaya waktu belajar berkurang drastis',
+          'D. Untuk membatasi anggota kelompok dalam bersuara'
+        ],
+        kunci: 'B',
+        pembahasan: 'Kerja sama tim heterogen memungkinkan murid saling belajar (peer learning), memperkuat nalar kritis, dan menginternalisasi nilai gotong royong Profil Pelajar Pancasila.',
+        poin: 100
+      }
+    ];
+  };
 
   // Generate RPM with AI for Next Lesson
   const handleGenerateRPM = async () => {
     setRpmNotification(null);
-    if (!selectedMaterial && !topikBerikutnya.trim()) {
-      setRpmNotification({ message: 'Tentukan materi acuan atau topik pembelajaran terlebih dahulu.', type: 'error' });
+    if (!topikBerikutnya.trim()) {
+      setRpmNotification({ message: 'Tentukan topik materi pembelajaran berikutnya terlebih dahulu.', type: 'error' });
       return;
     }
 
@@ -137,23 +375,25 @@ export const RpmGenerator: React.FC<RpmGeneratorProps> = ({
       const nextMaterialPayload: Material = {
         id: selectedMaterial?.id || 'mat_next_' + Date.now(),
         teacherId: activeTeacher?.id || 'teacher_demo',
-        topik: topikBerikutnya.trim() || selectedMaterial?.topik || 'Materi Pokok',
-        mataPelajaran: mataPelajaranBerikutnya.trim() || selectedMaterial?.mataPelajaran || 'Mata Pelajaran',
-        kelas: kelasBerikutnya.trim() || selectedMaterial?.kelas || 'X (Fase E)',
-        durasi: alokasiWaktuBerikutnya.trim() || selectedMaterial?.durasi || '2 x 45 Menit (90 Menit)',
-        capaianPembelajaran: capaianBerikutnya.trim() || selectedMaterial?.capaianPembelajaran || 'Peserta didik menganalisis dan menerapkan konsep esensial materi dalam pemecahan masalah kontekstual.',
-        tujuanPembelajaran: tujuanBerikutnya.trim() || selectedMaterial?.tujuanPembelajaran || 'Peserta didik mampu memahami dan mengaplikasikan konsep melalui kegiatan kolaboratif dan game edukasi.',
-        materi: selectedMaterial?.materi || topikBerikutnya,
-        karakteristikPesertaDidik: selectedMaterial?.karakteristikPesertaDidik || 'Aktif, menyukai tantangan gamifikasi dan diskusi kelompok interaktif.',
-        catatanGuru: catatanDiferensiasi.trim() || selectedMaterial?.catatanGuru || 'Fokus pada penguatan konsep sulit dan partisipasi aktif seluruh murid.',
+        topik: topikBerikutnya.trim(),
+        mataPelajaran: mataPelajaranBerikutnya.trim() || 'Pendidikan Pancasila & Kewarganegaraan (PPKn)',
+        kelas: kelasBerikutnya.trim() || 'X (Fase E)',
+        durasi: alokasiWaktuBerikutnya.trim() || '2 x 45 Menit (90 Menit)',
+        capaianPembelajaran: capaianBerikutnya.trim() || 'Peserta didik menganalisis dan menerapkan konsep esensial materi dalam pemecahan masalah kontekstual.',
+        tujuanPembelajaran: tujuanBerikutnya.trim() || 'Peserta didik mampu memahami dan mengaplikasikan konsep melalui kegiatan kolaboratif dan game edukasi terintegrasi.',
+        materi: subTopikBerikutnya.trim() || topikBerikutnya.trim(),
+        karakteristikPesertaDidik: 'Aktif, menyukai tantangan gamifikasi dan diskusi kelompok interaktif.',
+        catatanGuru: catatanDiferensiasi.trim() || `Fokus kesinambungan materi: ${kesinambunganMateri}. Penguatan materi sulit: ${liveInsights.materiSulit.join(', ')}.`,
         createdAt: new Date().toISOString()
       };
 
       // Integrated Game Payload (adapted directly to student reflection analysis)
       let targetGame: EducationalGame | undefined = undefined;
+      const gameQuestions = generateGameQuestions(nextMaterialPayload.topik, nextMaterialPayload.mataPelajaran, liveInsights.materiSulit);
+
       if (gameSourceMode === 'RECOMMENDED') {
-        const gameName = customGameName.trim() || activeAnalysis?.recommendedGame?.namaGame || `Tantangan Game: ${nextMaterialPayload.topik}`;
-        const gameCat = customGameCategory.trim() || activeAnalysis?.recommendedGame?.kategori || 'Balapan Mobil';
+        const gameName = customGameName.trim() || `Balapan Mobil: Sirkuit ${nextMaterialPayload.topik}`;
+        const gameCat = customGameCategory.trim() || 'Balapan Mobil';
         targetGame = {
           id: 'game_rec_' + Date.now(),
           teacherId: activeTeacher?.id || 'teacher_demo',
@@ -162,20 +402,20 @@ export const RpmGenerator: React.FC<RpmGeneratorProps> = ({
           mataPelajaran: nextMaterialPayload.mataPelajaran,
           kelas: nextMaterialPayload.kelas,
           materi: nextMaterialPayload.topik,
-          jumlahPemain: '4-5 orang per tim heterogen',
-          durasi: '25-30 Menit',
-          tujuan: `Mengatasi hambatan konsep pada ${activeAnalysis?.materiSulit?.slice(0, 2).join(' dan ') || nextMaterialPayload.topik} serta memfasilitasi partisipasi aktif sesuai aspirasi siswa`,
+          jumlahPemain: jumlahPemainGame.trim() || '4-5 orang per tim heterogen',
+          durasi: durasiGame.trim() || '25 Menit',
+          tujuan: `Mengatasi hambatan konsep pada ${liveInsights.materiSulit.slice(0, 2).join(' dan ')} melalui gamifikasi tim serta memfasilitasi tutor sebaya sesuai suara murid`,
           aturan: [
-            'Siswa berkumpul dalam kelompok heterogen berdasarkan hasil diagnostik refleksi sebelumnya',
+            'Siswa berkumpul dalam kelompok heterogen berdasarkan hasil diagnostik refleksi suara siswa sebelumnya',
             'Setiap tim menganalisis studi kasus dan memvalidasi jawaban kuis bersama',
             'Sistem skor memberikan reward pada sportivitas, nalar kritis, dan gotong royong'
           ],
           langkah: [
             'Guru memproyeksikan game edukasi di layar utama kelas',
-            'Kelompok mendiskusikan strategi pemecahan masalah',
-            'Verifikasi jawaban bersama dan penarikan kesimpulan konsep'
+            'Kelompok mendiskusikan strategi pemecahan masalah dan verifikasi jawaban bersama',
+            'Penarikan kesimpulan konsep dan apresiasi kelompok terkompak'
           ],
-          pertanyaan: [],
+          pertanyaan: gameQuestions,
           sistemSkor: '100 poin per jawaban tepat + bonus kecepatan dan kerja sama tim',
           caraMenentukanPemenang: 'Kelompok dengan akumulasi poin tertinggi dan penalaran terbaik',
           createdAt: new Date().toISOString()
@@ -187,25 +427,58 @@ export const RpmGenerator: React.FC<RpmGeneratorProps> = ({
           id: 'game_custom_' + Date.now(),
           teacherId: activeTeacher?.id || 'teacher_demo',
           namaGame: customGameName.trim() || `Tantangan Game: ${nextMaterialPayload.topik}`,
-          kategori: customGameCategory.trim() || 'Cepat Tanggap',
+          kategori: customGameCategory.trim() || 'Kuis Cepat Tanggap',
           mataPelajaran: nextMaterialPayload.mataPelajaran,
           kelas: nextMaterialPayload.kelas,
           materi: nextMaterialPayload.topik,
-          jumlahPemain: '4-5 orang per tim',
-          durasi: '25 Menit',
-          tujuan: `Penguatan pemahaman konsep ${nextMaterialPayload.topik}`,
+          jumlahPemain: jumlahPemainGame.trim() || '4-5 orang per tim',
+          durasi: durasiGame.trim() || '25 Menit',
+          tujuan: `Penguatan pemahaman konsep ${nextMaterialPayload.topik} dan pemecahan hambatan ${liveInsights.materiSulit[0] || 'materi'}`,
           aturan: ['Diskusi tim heterogen', 'Kerja sama kelompok', 'Presentasi temuan'],
           langkah: ['Penyajian kasus', 'Pengerjaan kuis game', 'Refleksi'],
-          pertanyaan: [],
+          pertanyaan: gameQuestions,
           sistemSkor: 'Poin akurasi jawaban kelompok',
           caraMenentukanPemenang: 'Tim terbaik',
           createdAt: new Date().toISOString()
         };
       }
 
+      // If we created a targetGame, save it to the database so it's a real, playable game
+      if (targetGame && (gameSourceMode === 'RECOMMENDED' || gameSourceMode === 'CUSTOM')) {
+        try {
+          const savedGame = await apiService.saveGame(targetGame);
+          targetGame = savedGame;
+        } catch (e) {
+          console.warn('Notice saving game to database:', e);
+        }
+      }
+
       const generated = await apiService.generateRPMWithAI({
         material: nextMaterialPayload,
-        analysis: activeAnalysis || undefined,
+        analysis: activeAnalysis || {
+          kondisiKelas: liveInsights.kondisiKelas,
+          persentasePositif: liveInsights.persentasePositif,
+          persentaseButuhBimbingan: liveInsights.persentaseButuhBimbingan,
+          materiSulit: liveInsights.materiSulit,
+          bagianDisukai: ['Diskusi kelompok', 'Game edukasi interaktif'],
+          kebutuhanSiswa: `Bimbingan bertahap pada: ${liveInsights.materiSulit.join(', ')}`,
+          preferensiMedia: liveInsights.preferensiMedia,
+          preferensiAktivitas: liveInsights.preferensiAktivitas,
+          alasanRekomendasi: liveInsights.alasan,
+          rekomendasi: {
+            strategi: [`Scaffolding bertahap pada: ${liveInsights.materiSulit[0] || nextMaterialPayload.topik}`, 'Cooperative Learning'],
+            media: [liveInsights.preferensiMedia, 'LKPD Berdiferensiasi'],
+            aktivitas: [liveInsights.preferensiAktivitas, 'Refleksi Digital NOVA'],
+            penguatan: ['Tutor sebaya tim heterogen'],
+            asesmen: ['Asesmen formatif game edukasi', 'Observasi DPL']
+          },
+          recommendedGame: {
+            namaGame: targetGame?.namaGame || 'Game Edukasi Terpadu',
+            kategori: targetGame?.kategori || 'Balapan Mobil',
+            alasan: `Diselaraskan dengan ${liveInsights.persentaseButuhBimbingan}% murid yang butuh bimbingan pada ${liveInsights.materiSulit[0] || 'konsep sulit'}.`,
+            deskripsiSingkat: targetGame?.tujuan || 'Penguatan pemahaman konsep melalui kompetisi sehat tim.'
+          }
+        },
         game: targetGame,
         sekolah,
         namaGuru,
@@ -230,6 +503,64 @@ export const RpmGenerator: React.FC<RpmGeneratorProps> = ({
       setRpmNotification({ message: 'Gagal menyusun RPM: ' + (e.message || 'Coba lagi'), type: 'error' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Open Quick Edit Modal for current RPM
+  const handleOpenQuickEdit = () => {
+    if (!selectedRpm) return;
+    const idt = getIdentitas(selectedRpm);
+    const linkedGame = games.find(g => g.id === selectedRpm.gameId) || games[0];
+    setQuickEditTopic(idt.materi || selectedRpm.mataPelajaran || '');
+    setQuickEditMataPelajaran(idt.mataPelajaran || selectedRpm.mataPelajaran || '');
+    setQuickEditKelas(idt.kelasFase || selectedRpm.kelas || '');
+    setQuickEditAlokasi(idt.alokasiWaktu || selectedRpm.alokasiWaktu || '');
+    setQuickEditGameName(linkedGame?.namaGame || `Game Edukasi: ${idt.materi}`);
+    setShowQuickEditModal(true);
+  };
+
+  // Save Quick Edit to current RPM
+  const handleSaveQuickEdit = async () => {
+    if (!selectedRpm) return;
+    try {
+      const idt = getIdentitas(selectedRpm);
+      const k1 = getKomponen1(selectedRpm);
+      const k2 = getKomponen2(selectedRpm);
+      const k3 = getKomponen3(selectedRpm);
+      const k4 = getKomponen4(selectedRpm);
+      const lp = getLampiran(selectedRpm);
+
+      const updatedRpm: RPMStructure = {
+        ...selectedRpm,
+        judul: `RPM - ${quickEditTopic.trim() || idt.materi}`,
+        mataPelajaran: quickEditMataPelajaran.trim() || idt.mataPelajaran,
+        kelas: quickEditKelas.trim() || idt.kelasFase,
+        alokasiWaktu: quickEditAlokasi.trim() || idt.alokasiWaktu,
+        identitas: {
+          ...idt,
+          materi: quickEditTopic.trim() || idt.materi,
+          mataPelajaran: quickEditMataPelajaran.trim() || idt.mataPelajaran,
+          kelasFase: quickEditKelas.trim() || idt.kelasFase,
+          alokasiWaktu: quickEditAlokasi.trim() || idt.alokasiWaktu,
+        },
+        komponen1_identifikasi: k1,
+        komponen2_desain: {
+          ...k2,
+          topikKontekstual: `Penerapan praktis prinsip ${quickEditTopic.trim() || idt.materi} dalam mengatasi isu-isu aktual di masyarakat.`
+        },
+        komponen3_pengalaman: k3,
+        komponen4_asesmen: k4,
+        lampiran: lp,
+        updatedAt: new Date().toISOString()
+      };
+
+      await apiService.saveRPM(updatedRpm);
+      setSelectedRpm(updatedRpm);
+      setShowQuickEditModal(false);
+      onRefreshRPMs();
+      setRpmNotification({ message: '✅ Materi acuan dan rincian RPM berhasil diperbarui!', type: 'success' });
+    } catch (e: any) {
+      setRpmNotification({ message: 'Gagal memperbarui RPM: ' + (e.message || 'Coba lagi'), type: 'error' });
     }
   };
 
@@ -1111,157 +1442,514 @@ C. SARANA DAN PRASARANA FISIK KELAS:
         </div>
 
         {/* SECTION 1: MATERI ACUAN & KUSTOMISASI MATERI PERTEMUAN BERIKUTNYA */}
-        <div className="p-5 rounded-2xl border-2 border-indigo-100 bg-slate-50/70 space-y-4 text-xs">
+        <div className="p-6 rounded-3xl border-2 border-indigo-100 bg-slate-50/70 space-y-5 text-xs shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-indigo-600" />
-              <h3 className="font-black text-slate-900 text-sm">
-                1. Acuan Materi & Rincian Pembelajaran Berikutnya
-              </h3>
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 bg-indigo-600 text-white rounded-xl shadow-xs">
+                <BookOpen className="w-4 h-4" />
+              </span>
+              <div>
+                <h3 className="font-black text-slate-900 text-sm">
+                  1. Acuan Materi & Perencanaan Pembelajaran Berikutnya
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Guru dapat mengedit materi acuan dan merancang topik pertemuan berikutnya secara fleksibel
+                </p>
+              </div>
             </div>
-            <span className="text-[11px] font-medium text-indigo-700 bg-indigo-100/70 px-2.5 py-0.5 rounded-full">
-              ✏️ Anda dapat mengedit materi acuan agar sesuai dengan materi pertemuan mendatang
+            <span className="text-[11px] font-bold text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full self-start sm:self-auto flex items-center gap-1">
+              <span>✏️ Acuan Materi Dapat Diedit Bebas</span>
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Materi Acuan Sesi Lalu */}
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">
-                Basis Refleksi Sebelumnya:
-              </label>
-              <select
-                value={selectedMaterialId}
-                onChange={e => setSelectedMaterialId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-medium text-slate-800 focus:ring-2 focus:ring-indigo-400"
-              >
-                {materials.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.topik} ({m.mataPelajaran})
-                  </option>
-                ))}
-              </select>
+          {/* Sub-Card A: Basis Acuan Materi (Refleksi Lalu) */}
+          <div className="p-4 bg-white rounded-2xl border border-indigo-100 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="font-bold text-indigo-950 flex items-center gap-1.5 text-xs uppercase tracking-wide">
+                <span>📌 Acuan Materi Sesi Sebelumnya (Basis Refleksi Murid):</span>
+              </span>
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setBaselineMode('SELECT')}
+                  className={`px-3 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    baselineMode === 'SELECT'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Pilih dari Bank Materi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBaselineMode('CUSTOM')}
+                  className={`px-3 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                    baselineMode === 'CUSTOM'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  ✏️ Ketik Acuan Kustom
+                </button>
+              </div>
             </div>
 
-            {/* Topik Materi Berikutnya (Bebas Diedit) */}
-            <div className="lg:col-span-2">
-              <label className="block font-bold text-indigo-900 mb-1 flex items-center justify-between">
-                <span>✏️ Topik Materi Pertemuan Berikutnya (Dapat Diedit): <span className="text-red-500">*</span></span>
-                <span className="text-[10px] text-indigo-600 font-normal">Bisa diubah bebas</span>
-              </label>
-              <input
-                type="text"
-                value={topikBerikutnya}
-                onChange={e => setTopikBerikutnya(e.target.value)}
-                placeholder="Contoh: Penerapan dan Penegakan Norma Hukum di Masyarakat (Pertemuan 2)"
-                className="w-full px-3.5 py-2 rounded-xl border-2 border-indigo-300 bg-white font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 shadow-xs"
-              />
-            </div>
-
-            {/* Alokasi Waktu */}
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">
-                Alokasi Waktu Pertemuan:
-              </label>
-              <input
-                type="text"
-                value={alokasiWaktuBerikutnya}
-                onChange={e => setAlokasiWaktuBerikutnya(e.target.value)}
-                placeholder="2 x 45 Menit (90 Menit)"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-800"
-              />
-            </div>
-          </div>
-
-          {/* Quick info bar on next material fields & toggle for advanced */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Mata Pelajaran:</label>
-              <input
-                type="text"
-                value={mataPelajaranBerikutnya}
-                onChange={e => setMataPelajaranBerikutnya(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-800"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Kelas / Fase:</label>
-              <input
-                type="text"
-                value={kelasBerikutnya}
-                onChange={e => setKelasBerikutnya(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-800"
-              />
-            </div>
-          </div>
-
-          {/* Toggle Advanced / Detail CP & TP */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowAdvancedMaterialEdit(!showAdvancedMaterialEdit)}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer py-1"
-            >
-              <span>{showAdvancedMaterialEdit ? '▼ Sembunyikan Detail CP, TP, & Catatan Diferensiasi' : '▶ Sesuaikan Capaian Pembelajaran (CP), TP, & Catatan Penguatan'}</span>
-            </button>
-
-            {showAdvancedMaterialEdit && (
-              <div className="mt-3 p-4 bg-white rounded-xl border border-slate-200 space-y-3 animate-fadeIn">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    Capaian Pembelajaran (CP) Elemen Pertemuan Berikutnya:
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={capaianBerikutnya}
-                    onChange={e => setCapaianBerikutnya(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs"
-                    placeholder="Tuliskan capaian pembelajaran kurikulum merdeka..."
+            {baselineMode === 'SELECT' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                <div className="sm:col-span-2">
+                  <select
+                    value={selectedMaterialId}
+                    onChange={e => setSelectedMaterialId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white font-bold text-slate-800 focus:ring-2 focus:ring-indigo-400"
+                  >
+                    {materials.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.topik} — ({m.mataPelajaran}) • {m.kelas}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <span className="font-semibold text-slate-700">Materi Terpilih: </span>
+                  {selectedMaterial?.topik || 'Norma dan Konstitusi'}
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Topik Acuan Sesi Lalu:</label>
+                  <input
+                    type="text"
+                    value={customBaselineTopic}
+                    onChange={e => {
+                      setCustomBaselineTopic(e.target.value);
+                      if (!topikBerikutnya || topikBerikutnya.includes('Pertemuan Berikutnya')) {
+                        setTopikBerikutnya(`${e.target.value} (Pertemuan 2 / Lanjutan)`);
+                      }
+                    }}
+                    placeholder="Contoh: Norma dan Konstitusi UUD NRI 1945"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-slate-900 bg-white"
                   />
                 </div>
-
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    Tujuan Pembelajaran (TP) Spesifik Pertemuan Berikutnya:
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={tujuanBerikutnya}
-                    onChange={e => setTujuanBerikutnya(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs"
-                    placeholder="Tuliskan tujuan pembelajaran terukur untuk pertemuan mendatang..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-indigo-900 mb-1">
-                    Catatan Diferensiasi & Suara Refleksi Siswa:
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={catatanDiferensiasi}
-                    onChange={e => setCatatanDiferensiasi(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-indigo-200 bg-indigo-50/50 text-xs text-indigo-950 font-medium"
-                    placeholder="Fokus penguatan materi sulit dari refleksi siswa sesi sebelumnya..."
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Mata Pelajaran Acuan:</label>
+                  <input
+                    type="text"
+                    value={customBaselineSubject}
+                    onChange={e => setCustomBaselineSubject(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800 bg-white"
                   />
                 </div>
               </div>
             )}
           </div>
+
+          {/* Sub-Card B: TARGET MATERI PERTEMUAN BERIKUTNYA (Yang Dirancang dalam RPM ini) */}
+          <div className="p-5 bg-white rounded-2xl border-2 border-indigo-200 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 pb-2.5">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-indigo-600" />
+                <span className="font-black text-indigo-950 text-xs sm:text-sm uppercase tracking-wide">
+                  🎯 Target Materi Pertemuan Berikutnya (Yang Dirancang dalam RPM Ini):
+                </span>
+              </div>
+              <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                Menindaklanjuti Refleksi Murid
+              </span>
+            </div>
+
+            {/* Topik Materi Berikutnya */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                  <span>Topik Pembelajaran Pertemuan Mendatang:</span>
+                  <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[10px] text-indigo-600 font-semibold">Dapat diedit bebas oleh guru</span>
+              </div>
+              <input
+                type="text"
+                value={topikBerikutnya}
+                onChange={e => setTopikBerikutnya(e.target.value)}
+                placeholder="Contoh: Penerapan dan Penegakan Norma Hukum Positif di Masyarakat (Pertemuan 2)"
+                className="w-full px-4 py-2.5 rounded-xl border-2 border-indigo-300 bg-white font-black text-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 shadow-xs"
+              />
+
+              {/* Quick Preset Continuous Topic Chips */}
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mr-1">
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  Saran Topik Kesinambungan:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleApplyNextTopicPreset(
+                    'Tata Hierarki Peraturan Perundang-undangan RI (UU No. 12 Tahun 2011)',
+                    'Asas Lex Superior, Pasal 7 ayat 1, Analisis Hierarki TAP MPR dan Perpu, serta Uji Materiil di MK & MA'
+                  )}
+                  className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-semibold text-[10px] border border-indigo-200 transition cursor-pointer"
+                >
+                  📜 Hierarki Regulasi Hukum (UU 12/2011)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyNextTopicPreset(
+                    'Penerapan & Penegakan Norma Hukum Positif di Lingkungan Masyarakat',
+                    'Dilema Penegakan Hukum, Sanksi Norma Hukum vs Sosial, Studi Kasus Pelanggaran Perda, dan Solusi Restoratif'
+                  )}
+                  className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-semibold text-[10px] border border-indigo-200 transition cursor-pointer"
+                >
+                  ⚖️ Penegakan Norma di Masyarakat
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyNextTopicPreset(
+                    'Harmonisasi Hak dan Kewajiban Warga Negara dalam UUD NRI 1945',
+                    'Pasal 27, 28, dan 30 UUD 1945, Studi Kasus Keadilan Sosial, Hak Bersuara, dan Tanggung Jawab Warga Negara'
+                  )}
+                  className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-semibold text-[10px] border border-indigo-200 transition cursor-pointer"
+                >
+                  🏛️ Hak & Kewajiban Warga Negara
+                </button>
+              </div>
+            </div>
+
+            {/* Sub-Topik & Rincian Pokok Bahasan */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Sub-Topik / Rincian Pokok Bahasan Spesifik:
+                </label>
+                <textarea
+                  rows={2}
+                  value={subTopikBerikutnya}
+                  onChange={e => setSubTopikBerikutnya(e.target.value)}
+                  placeholder="Rincian pasal, konsep kunci, atau kasus kontekstual yang akan dipelajari..."
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-indigo-300"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Hubungan Kesinambungan dari Sesi Lalu (Tindak Lanjut):
+                </label>
+                <textarea
+                  rows={2}
+                  value={kesinambunganMateri}
+                  onChange={e => setKesinambunganMateri(e.target.value)}
+                  placeholder="Bagaimana materi ini melanjutkan dan menuntaskan kesulitan konsep murid sebelumnya..."
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-800 focus:ring-2 focus:ring-indigo-300"
+                />
+              </div>
+            </div>
+
+            {/* Meta bar: Mata Pelajaran, Kelas, Alokasi Waktu */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Mata Pelajaran:</label>
+                <input
+                  type="text"
+                  value={mataPelajaranBerikutnya}
+                  onChange={e => setMataPelajaranBerikutnya(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 font-medium"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Kelas / Fase:</label>
+                <input
+                  type="text"
+                  value={kelasBerikutnya}
+                  onChange={e => setKelasBerikutnya(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 font-medium"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Alokasi Waktu:</label>
+                <input
+                  type="text"
+                  value={alokasiWaktuBerikutnya}
+                  onChange={e => setAlokasiWaktuBerikutnya(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 font-medium"
+                />
+              </div>
+            </div>
+
+            {/* CP, TP, & Catatan Penguatan Diferensiasi (Bebas Diedit Guru) */}
+            <div className="space-y-3 pt-2 border-t border-slate-100">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-800">
+                    Capaian Pembelajaran (CP) Elemen Pertemuan Berikutnya:
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setCapaianBerikutnya(
+                      `Peserta didik mampu menganalisis, mengevaluasi, serta mengaplikasikan prinsip ${topikBerikutnya} dalam pemecahan kasus nyata di masyarakat dengan berkesadaran nalar kritis dan gotong royong.`
+                    )}
+                    className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold cursor-pointer"
+                  >
+                    ✨ Rumuskan CP Otomatis
+                  </button>
+                </div>
+                <textarea
+                  rows={2}
+                  value={capaianBerikutnya}
+                  onChange={e => setCapaianBerikutnya(e.target.value)}
+                  placeholder="Rumusan capaian kurikulum merdeka untuk pertemuan ini..."
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-800"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-800">
+                    Tujuan Pembelajaran (TP) Spesifik Pertemuan Berikutnya (Format Terukur):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setTujuanBerikutnya(
+                      `1. Melalui telaah wacana dan tayangan visual, peserta didik mampu menguraikan konsep ${topikBerikutnya} secara tepat.\n2. Melalui game edukasi terintegrasi dan diskusi LKPD kelompok heterogen, peserta didik mampu memecahkan studi kasus kontekstual dengan nalar kritis.\n3. Melalui sesi refleksi 5 dimensi NOVA, peserta didik mampu mengaitkan pemaknaan materi dengan perilaku sehari-hari.`
+                    )}
+                    className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold cursor-pointer"
+                  >
+                    ✨ Rumuskan TP Terstruktur (ABCD)
+                  </button>
+                </div>
+                <textarea
+                  rows={2}
+                  value={tujuanBerikutnya}
+                  onChange={e => setTujuanBerikutnya(e.target.value)}
+                  placeholder="Rumusan tujuan pembelajaran spesifik untuk pertemuan mendatang..."
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-indigo-900 mb-1">
+                  Catatan Penguatan Konsep Sulit Murid (Tersinkronisasi dari Suara Refleksi Siswa):
+                </label>
+                <textarea
+                  rows={2}
+                  value={catatanDiferensiasi}
+                  onChange={e => setCatatanDiferensiasi(e.target.value)}
+                  placeholder="Fokus penguatan materi sulit dari refleksi siswa sesi sebelumnya..."
+                  className="w-full p-2.5 rounded-xl border border-indigo-200 bg-indigo-50/50 text-xs text-indigo-950 font-medium"
+                />
+              </div>
+
+              {/* Action Button: Save this new material to Materials Bank */}
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handleSaveNewMaterialToBank}
+                  disabled={savingMaterial}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
+                  title="Simpan materi pertemuan berikutnya ini ke Bank Materi agar dapat digunakan kembali"
+                >
+                  <Save className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>{savingMaterial ? 'Menyimpan Materi...' : '💾 Simpan Materi Baru Ini ke Bank Materi Guru'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* SECTION 2: GAME TERINTEGRASI (DISESUAIKAN DENGAN HASIL ANALISIS REFLEKSI MURID) */}
-        <div className="p-5 rounded-2xl border-2 border-purple-100 bg-purple-50/30 space-y-4 text-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-100 pb-3">
-            <div className="flex items-center gap-2">
-              <Gamepad2 className="w-4 h-4 text-purple-600" />
-              <h3 className="font-black text-slate-900 text-sm">
-                2. Game Terintegrasi (Disesuaikan dengan Hasil Analisis Refleksi Murid)
-              </h3>
+        <div className="p-6 rounded-3xl border-2 border-purple-200 bg-purple-50/40 space-y-5 text-xs shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-200 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 bg-purple-600 text-white rounded-xl shadow-xs">
+                <Gamepad2 className="w-4 h-4" />
+              </span>
+              <div>
+                <h3 className="font-black text-slate-900 text-sm">
+                  2. Game Terintegrasi (Disesuaikan dengan Hasil Analisis Refleksi Murid)
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Game ini otomatis diinjeksi ke Komponen 3M (Mengaplikasi), Asesmen Formatif, Rubrik & Lembar Kerja Siswa (LKPD)
+                </p>
+              </div>
             </div>
-            <span className="text-[11px] font-bold text-purple-700 bg-purple-100 px-2.5 py-0.5 rounded-full">
-              Terinjeksi ke Komponen 3M (Mengaplikasi), Asesmen & LKPD
+            <span className="text-[11px] font-bold text-purple-800 bg-purple-100 px-3 py-1 rounded-full self-start sm:self-auto flex items-center gap-1">
+              <span>🎯 Menjawab Kesulitan Belajar Siswa</span>
             </span>
+          </div>
+
+          {/* LIVE REFLECTION DIAGNOSTIC SUMMARY BANNER */}
+          <div className="p-4 bg-white rounded-2xl border border-purple-200 space-y-3 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="font-bold text-purple-950 flex items-center gap-1.5 text-xs uppercase tracking-wide">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <span>📊 Hasil Analisis Suara & Refleksi Murid Sesi Sebelumnya:</span>
+              </span>
+              <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full">
+                {liveInsights.persentaseButuhBimbingan}% Murid Membutuhkan Scaffolding
+              </span>
+            </div>
+
+            {/* Badges of difficult topics from reflections */}
+            <div>
+              <span className="text-[11px] font-semibold text-slate-600 block mb-1.5">
+                🚨 Materi yang Dilaporkan Paling Menantang oleh Murid:
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {liveInsights.materiSulit.map((diff, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-2xs"
+                  >
+                    <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
+                    <span>{diff}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Student preferences */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-[11px]">
+              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-slate-700">
+                <strong className="text-purple-900 block mb-0.5">🎮 Media Pilihan Terbanyak Murid:</strong>
+                <span>{liveInsights.preferensiMedia}</span>
+              </div>
+              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-slate-700">
+                <strong className="text-purple-900 block mb-0.5">👥 Aktivitas yang Diinginkan Murid:</strong>
+                <span>{liveInsights.preferensiAktivitas}</span>
+              </div>
+            </div>
+
+            {liveInsights.alasan && (
+              <div className="p-2.5 bg-purple-50/70 border border-purple-200 rounded-xl text-[11px] text-purple-900 leading-relaxed">
+                <strong>💡 Alasan Pedagogis Penyelarasan Game:</strong> {liveInsights.alasan}
+              </div>
+            )}
+          </div>
+
+          {/* 4 SMART GAME PRESET CARDS ADAPTED TO REFLECTION */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-bold text-slate-800 text-xs">
+                Pilih Model Game Cerdas yang Disesuaikan dengan Kebutuhan Refleksi:
+              </span>
+              <span className="text-[10px] text-purple-700 font-semibold">Klik salah satu untuk menerapkan</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {/* Preset 1 */}
+              <button
+                type="button"
+                onClick={() => handleApplyGamePreset(
+                  `Balapan Mobil: Sirkuit ${topikBerikutnya || 'Norma & Konstitusi'}`,
+                  'Balapan Mobil',
+                  `Mengatasi kesulitan pada: ${liveInsights.materiSulit[0] || 'Menganalisis Pasal UUD & Hierarki Norma'}`,
+                  '4 Tim Heterogen (Garuda, Elang, Banteng, Harimau) dengan tutor sebaya saat kuis pit stop'
+                )}
+                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                  customGameCategory === 'Balapan Mobil'
+                    ? 'border-purple-600 bg-white ring-2 ring-purple-400 shadow-sm'
+                    : 'border-slate-200 bg-white/80 hover:border-purple-300'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1 text-purple-950 font-bold text-xs">
+                    <span className="text-base">🏎️</span>
+                    <span>Balapan Mobil Interaktif</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 line-clamp-2">
+                    Lomba adu cepat skor tim. Jawaban tepat memacu mobil tim menuju garis finish.
+                  </p>
+                </div>
+                <div className="mt-2 text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md inline-block self-start">
+                  Gaya: Visual & Kinestetik
+                </div>
+              </button>
+
+              {/* Preset 2 */}
+              <button
+                type="button"
+                onClick={() => handleApplyGamePreset(
+                  `Kuis Cepat Tanggap: Master ${topikBerikutnya || 'Hukum & Keadilan'}`,
+                  'Kuis Cepat Tanggap',
+                  `Mengurai kesulitan konsep pada: ${liveInsights.materiSulit.slice(0, 2).join(' dan ')}`,
+                  'Diskusi kilat 30 detik dalam tim heterogen sebelum mengirimkan perwakilan jawaban'
+                )}
+                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                  customGameCategory === 'Kuis Cepat Tanggap'
+                    ? 'border-purple-600 bg-white ring-2 ring-purple-400 shadow-sm'
+                    : 'border-slate-200 bg-white/80 hover:border-purple-300'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1 text-purple-950 font-bold text-xs">
+                    <span className="text-base">⚡</span>
+                    <span>Kuis Cepat Tanggap</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 line-clamp-2">
+                    Tantangan adu akurasi dan kecepatan berpikir kritis antartim dalam suasana seru.
+                  </p>
+                </div>
+                <div className="mt-2 text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md inline-block self-start">
+                  Fokus: Tutor Sebaya
+                </div>
+              </button>
+
+              {/* Preset 3 */}
+              <button
+                type="button"
+                onClick={() => handleApplyGamePreset(
+                  `Teka-Teki Silang & Labirin: ${topikBerikutnya || 'Konsep Esensial'}`,
+                  'Tebak Kata & Peta Konsep',
+                  `Memperkuat pemahaman definisi, pasal, dan struktur urutan regulasi yang sebelumnya sulit`,
+                  'Tim bekerja berpasangan untuk melengkapi kata kunci dan peta konsep berjenjang'
+                )}
+                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                  customGameCategory === 'Tebak Kata & Peta Konsep'
+                    ? 'border-purple-600 bg-white ring-2 ring-purple-400 shadow-sm'
+                    : 'border-slate-200 bg-white/80 hover:border-purple-300'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1 text-purple-950 font-bold text-xs">
+                    <span className="text-base">🧩</span>
+                    <span>Teka-Teki & Peta Konsep</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 line-clamp-2">
+                    Menyusun potongan konsep dan pasal hukum yang membingungkan menjadi utuh.
+                  </p>
+                </div>
+                <div className="mt-2 text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md inline-block self-start">
+                  Fokus: Definisi & Struktur
+                </div>
+              </button>
+
+              {/* Preset 4 */}
+              <button
+                type="button"
+                onClick={() => handleApplyGamePreset(
+                  `Detektif Kasus: Penegakan Hukum ${topikBerikutnya || 'di Masyarakat'}`,
+                  'Petualangan RPG Edukatif',
+                  `Penerapan studi kasus nyata dan verifikasi keseimbangan hak-kewajiban warga negara`,
+                  'Investigasi tim 4 orang merumuskan berkas putusan kasus berkeadilan'
+                )}
+                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                  customGameCategory === 'Petualangan RPG Edukatif'
+                    ? 'border-purple-600 bg-white ring-2 ring-purple-400 shadow-sm'
+                    : 'border-slate-200 bg-white/80 hover:border-purple-300'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1 text-purple-950 font-bold text-xs">
+                    <span className="text-base">🛡️</span>
+                    <span>Detektif Kasus Nyata</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 line-clamp-2">
+                    Menganalisis dilema pelanggaran norma dan merumuskan solusi restoratif berkeadilan.
+                  </p>
+                </div>
+                <div className="mt-2 text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md inline-block self-start">
+                  Fokus: Analisis Kasus
+                </div>
+              </button>
+            </div>
           </div>
 
           {/* Mode Selector Tabs */}
@@ -1271,7 +1959,7 @@ C. SARANA DAN PRASARANA FISIK KELAS:
               onClick={() => setGameSourceMode('RECOMMENDED')}
               className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
                 gameSourceMode === 'RECOMMENDED'
-                  ? 'border-purple-600 bg-purple-50 text-purple-950 font-bold ring-2 ring-purple-300 shadow-sm'
+                  ? 'border-purple-600 bg-purple-50 text-purple-950 font-bold ring-2 ring-purple-300 shadow-xs'
                   : 'border-slate-200 bg-white hover:border-purple-300 text-slate-700'
               }`}
             >
@@ -1289,7 +1977,7 @@ C. SARANA DAN PRASARANA FISIK KELAS:
               onClick={() => setGameSourceMode('BANK')}
               className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
                 gameSourceMode === 'BANK'
-                  ? 'border-purple-600 bg-purple-50 text-purple-950 font-bold ring-2 ring-purple-300 shadow-sm'
+                  ? 'border-purple-600 bg-purple-50 text-purple-950 font-bold ring-2 ring-purple-300 shadow-xs'
                   : 'border-slate-200 bg-white hover:border-purple-300 text-slate-700'
               }`}
             >
@@ -1307,7 +1995,7 @@ C. SARANA DAN PRASARANA FISIK KELAS:
               onClick={() => setGameSourceMode('CUSTOM')}
               className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
                 gameSourceMode === 'CUSTOM'
-                  ? 'border-purple-600 bg-purple-50 text-purple-950 font-bold ring-2 ring-purple-300 shadow-sm'
+                  ? 'border-purple-600 bg-purple-50 text-purple-950 font-bold ring-2 ring-purple-300 shadow-xs'
                   : 'border-slate-200 bg-white hover:border-purple-300 text-slate-700'
               }`}
             >
@@ -1322,38 +2010,26 @@ C. SARANA DAN PRASARANA FISIK KELAS:
           </div>
 
           {/* Active Game Configuration Details */}
-          {gameSourceMode === 'RECOMMENDED' && (
-            <div className="p-4 bg-white rounded-xl border border-purple-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Detail Game Rekomendasi Hasil Refleksi Murid:</span>
-                </span>
-                {activeAnalysis && (
-                  <span className="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-bold">
-                    Selaras {activeAnalysis.persentaseButuhBimbingan}% Murid Butuh Bimbingan
-                  </span>
-                )}
-              </div>
-
+          {(gameSourceMode === 'RECOMMENDED' || gameSourceMode === 'CUSTOM') && (
+            <div className="p-4 bg-white rounded-2xl border border-purple-200 space-y-3 shadow-2xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Nama Game Terintegrasi:</label>
+                  <label className="block font-bold text-slate-700 mb-1">Nama Game Terintegrasi:</label>
                   <input
                     type="text"
-                    value={customGameName || activeAnalysis?.recommendedGame?.namaGame || `Tantangan Kuis: ${topikBerikutnya}`}
+                    value={customGameName}
                     onChange={e => setCustomGameName(e.target.value)}
-                    placeholder="Contoh: Balapan Mobil: Norma & Hierarki Hukum"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold text-purple-950"
+                    placeholder="Contoh: Balapan Mobil: Sirkuit Norma & Hierarki Hukum"
+                    className="w-full px-3 py-2 rounded-xl border border-purple-300 bg-white font-black text-purple-950 text-xs focus:ring-2 focus:ring-purple-400"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Kategori / Model Game:</label>
+                  <label className="block font-bold text-slate-700 mb-1">Kategori / Model Game:</label>
                   <select
-                    value={customGameCategory || activeAnalysis?.recommendedGame?.kategori || 'Balapan Mobil'}
+                    value={customGameCategory}
                     onChange={e => setCustomGameCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-medium text-slate-800"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold text-slate-800 text-xs"
                   >
                     <option value="Balapan Mobil">🏎️ Balapan Mobil (Race Challenge)</option>
                     <option value="Kuis Cepat Tanggap">⚡ Kuis Cepat Tanggap (Quick Battle)</option>
@@ -1365,27 +2041,71 @@ C. SARANA DAN PRASARANA FISIK KELAS:
                 </div>
               </div>
 
-              {activeAnalysis?.recommendedGame?.alasan && (
-                <div className="p-3 bg-purple-50/80 rounded-xl border border-purple-200 text-[11px] text-purple-900 leading-relaxed">
-                  <strong>💡 Alasan Pedagogis NOVA:</strong> {activeAnalysis.recommendedGame.alasan}
+              {/* Specific connection to student challenges and peer tutoring */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block font-bold text-purple-900 mb-1">
+                    🎯 Tantangan Konsep Sulit yang Disasar Game Ini (Disesuaikan Refleksi Murid):
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={fokusHambatanGame}
+                    onChange={e => setFokusHambatanGame(e.target.value)}
+                    placeholder="Contoh: Mengatasi kesulitan siswa dalam membedakan urutan perundangan dan menguji pasal..."
+                    className="w-full p-2 rounded-xl border border-purple-200 bg-purple-50/40 text-xs font-medium text-purple-950"
+                  />
                 </div>
-              )}
+
+                <div>
+                  <label className="block font-bold text-purple-900 mb-1">
+                    👥 Mekanisme Diferensiasi & Tutor Sebaya Tim Heterogen:
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={mekanismeTutorSebaya}
+                    onChange={e => setMekanismeTutorSebaya(e.target.value)}
+                    placeholder="Contoh: Pembentukan tim heterogen agar siswa mahir dapat membimbing rekannya..."
+                    className="w-full p-2 rounded-xl border border-purple-200 bg-purple-50/40 text-xs font-medium text-purple-950"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Durasi Game dalam Pembelajaran:</label>
+                  <input
+                    type="text"
+                    value={durasiGame}
+                    onChange={e => setDurasiGame(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Format Tim / Jumlah Pemain:</label>
+                  <input
+                    type="text"
+                    value={jumlahPemainGame}
+                    onChange={e => setJumlahPemainGame(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-800"
+                  />
+                </div>
+              </div>
             </div>
           )}
 
           {gameSourceMode === 'BANK' && (
-            <div className="p-4 bg-white rounded-xl border border-purple-200 space-y-2">
+            <div className="p-4 bg-white rounded-2xl border border-purple-200 space-y-3 shadow-2xs">
               <label className="block font-bold text-slate-700 mb-1">
                 Pilih Game dari Bank Game Anda:
               </label>
               {games.length === 0 ? (
-                <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs flex items-center justify-between">
-                  <span>Belum ada game yang dibuat di Bank Game. Anda dapat menggunakan opsi "Rekomendasi Refleksi" atau "Kustomisasi Game".</span>
+                <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs flex items-center justify-between gap-3">
+                  <span>Belum ada game di Bank Game. Gunakan opsi "Rekomendasi Refleksi" untuk membuat game otomatis sesuai hasil refleksi murid.</span>
                   {onNavigateToCreateGame && (
                     <button
                       type="button"
                       onClick={() => onNavigateToCreateGame({ materi: topikBerikutnya })}
-                      className="px-3 py-1 bg-amber-600 text-white rounded-lg font-bold text-[11px] hover:bg-amber-700 cursor-pointer"
+                      className="px-3.5 py-1.5 bg-amber-600 text-white rounded-xl font-bold text-xs hover:bg-amber-700 cursor-pointer shrink-0"
                     >
                       Buat Game Baru
                     </button>
@@ -1395,7 +2115,7 @@ C. SARANA DAN PRASARANA FISIK KELAS:
                 <select
                   value={selectedGameId}
                   onChange={e => setSelectedGameId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold text-slate-800"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white font-bold text-slate-800"
                 >
                   {games.map(g => (
                     <option key={g.id} value={g.id}>
@@ -1404,33 +2124,6 @@ C. SARANA DAN PRASARANA FISIK KELAS:
                   ))}
                 </select>
               )}
-            </div>
-          )}
-
-          {gameSourceMode === 'CUSTOM' && (
-            <div className="p-4 bg-white rounded-xl border border-purple-200 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Nama Game:</label>
-                  <input
-                    type="text"
-                    value={customGameName}
-                    onChange={e => setCustomGameName(e.target.value)}
-                    placeholder="Contoh: Kuis Tantangan PPKn Pintar"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Kategori Game:</label>
-                  <input
-                    type="text"
-                    value={customGameCategory}
-                    onChange={e => setCustomGameCategory(e.target.value)}
-                    placeholder="Contoh: Simulasi Sidang / Cepat Tepat"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-medium"
-                  />
-                </div>
-              </div>
             </div>
           )}
         </div>
@@ -1514,6 +2207,16 @@ C. SARANA DAN PRASARANA FISIK KELAS:
                 <>
                   <button
                     type="button"
+                    onClick={handleOpenQuickEdit}
+                    className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer"
+                    title="Edit acuan materi, topik, dan game terintegrasi dokumen RPM ini"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>✏️ Sesuaikan Materi & Game RPM</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => setShowAiEditModal(true)}
                     className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md shadow-purple-200 hover:scale-105 active:scale-95 transition cursor-pointer"
                   >
@@ -1559,6 +2262,7 @@ C. SARANA DAN PRASARANA FISIK KELAS:
               const linkedGame = games.find(g => g.id === selectedRpm.gameId) || 
                                  games.find(g => g.materialId === selectedRpm.materialId) ||
                                  games[0];
+              const rpmTopic = selectedRpm.identitas?.materi || selectedRpm.sections?.A_identitas?.materi || selectedRpm.mataPelajaran;
               return (
                 <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white p-5 rounded-2xl font-sans not-prose shadow-lg border border-purple-500/30 print:hidden">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1568,17 +2272,28 @@ C. SARANA DAN PRASARANA FISIK KELAS:
                           <Gamepad2 className="w-4 h-4" />
                         </span>
                         <span className="text-xs font-black uppercase tracking-wider text-pink-300">
-                          Game Edukasi Berkesinambungan
+                          Game Edukasi Terintegrasi Hasil Refleksi Murid
+                        </span>
+                        <span className="text-[10px] bg-purple-500/30 text-purple-200 border border-purple-400/30 px-2 py-0.5 rounded-md font-semibold">
+                          🎯 Adaptif Suara Siswa
                         </span>
                       </div>
                       {linkedGame ? (
                         <div>
-                          <h4 className="text-base font-bold text-white">
-                            🎮 {linkedGame.namaGame} ({linkedGame.kategori})
+                          <h4 className="text-base font-bold text-white flex items-center gap-2">
+                            <span>🎮 {linkedGame.namaGame}</span>
+                            <span className="text-xs px-2 py-0.5 bg-indigo-500/30 text-indigo-200 rounded-full font-medium border border-indigo-400/30">
+                              {linkedGame.kategori}
+                            </span>
                           </h4>
-                          <p className="text-xs text-indigo-200">
-                            Durasi: {linkedGame.durasi} • Jumlah Pemain: {linkedGame.jumlahPemain} • Terkait Materi: {selectedRpm.sections.A_identitas.materi}
+                          <p className="text-xs text-indigo-200 mt-0.5">
+                            Durasi: {linkedGame.durasi} • Format: {linkedGame.jumlahPemain} • Terkait Materi: <strong className="text-white">{rpmTopic}</strong>
                           </p>
+                          {linkedGame.tujuan && (
+                            <p className="text-[11px] text-pink-200/90 mt-1 italic">
+                              💡 Fokus: {linkedGame.tujuan}
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <div>
@@ -1605,14 +2320,14 @@ C. SARANA DAN PRASARANA FISIK KELAS:
                           onClick={() => onNavigateToCreateGame({
                             mataPelajaran: selectedRpm.mataPelajaran,
                             kelas: selectedRpm.kelas,
-                            materi: selectedRpm.sections.A_identitas.materi,
-                            tujuan: selectedRpm.sections.D_tujuanPembelajaran?.[0] || '',
+                            materi: rpmTopic,
+                            tujuan: selectedRpm.sections?.D_tujuanPembelajaran?.[0] || selectedRpm.komponen2_desain?.tujuanPembelajaran?.[0] || '',
                             rpmId: selectedRpm.id
                           })}
                           className="flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs rounded-xl transition cursor-pointer"
                         >
                           <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                          <span>Rancang Game Baru</span>
+                          <span>Kelola di Game Studio</span>
                         </button>
                       )}
                     </div>
@@ -2973,6 +3688,104 @@ C. SARANA DAN PRASARANA FISIK KELAS:
                     <span>Terapkan Revisi AI Sekarang</span>
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: SESUAIKAN ACUAN MATERI & GAME RPM */}
+      {showQuickEditModal && selectedRpm && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
+          <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white p-6 relative">
+              <button
+                type="button"
+                onClick={() => setShowQuickEditModal(false)}
+                className="absolute top-4 right-4 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-200 uppercase tracking-wider mb-1">
+                <Edit3 className="w-4 h-4 text-amber-200" />
+                <span>Pengaturan Acuan Materi & Game</span>
+              </div>
+
+              <h3 className="text-lg font-black text-white">
+                Sesuaikan Materi Acuan Dokumen RPM Ini
+              </h3>
+              <p className="text-xs text-amber-100 mt-0.5">
+                Ubah topik, alokasi waktu, atau kelas untuk menyesuaikan dengan materi pertemuan berikutnya
+              </p>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Materi Pokok / Topik Pembelajaran:
+                </label>
+                <input
+                  type="text"
+                  value={quickEditTopic}
+                  onChange={e => setQuickEditTopic(e.target.value)}
+                  placeholder="Contoh: Hierarki Peraturan Perundang-undangan (Pertemuan 2)"
+                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-amber-300 font-bold text-slate-900 bg-white focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Mata Pelajaran:</label>
+                  <input
+                    type="text"
+                    value={quickEditMataPelajaran}
+                    onChange={e => setQuickEditMataPelajaran(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Kelas / Fase:</label>
+                  <input
+                    type="text"
+                    value={quickEditKelas}
+                    onChange={e => setQuickEditKelas(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Alokasi Waktu:</label>
+                <input
+                  type="text"
+                  value={quickEditAlokasi}
+                  onChange={e => setQuickEditAlokasi(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800"
+                />
+              </div>
+
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed">
+                💡 <strong>Catatan:</strong> Perubahan ini akan langsung diperbarui di Bagian Identitas, Desain Pembelajaran, dan seluruh lembar cetak Dokumen RPM.
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setShowQuickEditModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveQuickEdit}
+                className="flex items-center gap-1.5 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>Simpan Perubahan Materi</span>
               </button>
             </div>
           </div>
